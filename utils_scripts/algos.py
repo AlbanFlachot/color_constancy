@@ -7,8 +7,12 @@ Created on Mon Sep  9 12:03:14 2019
 """
 
 import numpy as np
+import sys
 
-CC_dir_path = '/home/alban/Documents/pytorch/project_color_constancy/WCS_Xp/'
+sys.path.append('../../')
+
+txt_dir_path = '../../txt_files/'
+npy_dir_path = '../../npy_files/'
 
 def compute_WCS_Munsells_categories():
 	'''
@@ -17,13 +21,13 @@ def compute_WCS_Munsells_categories():
 	
 	## list of Munsells used in the World Color Survey
 	WCS_muns = list()
-	with open(CC_dir_path + "WCS_muns.txt") as f:
+	with open(txt_dir_path + "WCS_muns.txt") as f:
 		for line in f:
 		   WCS_muns.append(line.split()[0])
 
 	## list of 1600 Munsells	
 	All_muns = list()
-	with open(CC_dir_path + "munsell_labels.txt") as f:
+	with open(txt_dir_path + "munsell_labels.txt") as f:
 		for line in f:
 		   All_muns.append(line.split()[0])
 		   

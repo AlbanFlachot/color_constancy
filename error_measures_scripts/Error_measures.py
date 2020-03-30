@@ -37,6 +37,7 @@ def DE_error(chroma_obj, munsell_lab):
 
 def softmax(x):
     '''Compute softmax values for each sets of scores in x. Assumes the last dim is the dim upon make sum'''
+    #import pdb; pdb.set_trace()
     x = x.T
     return (np.exp(x) / np.sum(np.exp(x), axis=0)).T
 

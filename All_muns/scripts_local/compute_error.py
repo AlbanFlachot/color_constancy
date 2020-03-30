@@ -25,7 +25,7 @@ sys.path.append('../../')
 
 from color_scripts import color_transforms as CT # scripts with a bunch of functions for color transformations
 from error_measures_scripts import Error_measures as EM
-from display_scripts import display as dis
+#from display_scripts import display as dis
 from utils_scripts import algos
 
 
@@ -44,6 +44,8 @@ import argparse
 
 parser = argparse.ArgumentParser(description='Parsing variables for rendering images')
 
+parser.add_argument('--training_set', default='CC', type=str, metavar='str',
+                    help='to distiguish between CC and D65')
 
 parser.add_argument('--NetType', default='Original', type=str, metavar='str',
                     help='type of model to analyze')
@@ -89,7 +91,7 @@ npy_dir_path = '../../npy_files/'
 
 
 
-def LoadandComputeOutputs(path2activations, NetType, Testing_type, layer, testing_condition):
+def LoadandComputeOutputs(path2activations, NetType, training_set, Testing_type, testing_set, layer, testing_condition):
     '''
     Function that loads previously saved outputs and computes the softmax. Different cases for different models.
     PARAMETERS:
@@ -104,8 +106,10 @@ def LoadandComputeOutputs(path2activations, NetType, Testing_type, layer, testin
     train_labels = [int(re.search('object(.*?)/', addr).group(1)) for addr in img_paths]
     sequence_1600 = np.array([train_labels[i] for i in range(0,train_labels.__len__(),28)])
     sequence_330 = sequence_1600[sequence_1600<330]
+    #print(path2activations + '_' + layer + '_' + NetType + '_' + training_set + '_' + Testing_type + '_' + testing_set + '_' + testing_condition +'.npy')
     if (NetType == 'Original') | (NetType == 'ConvNet'):
-        OUT_soft = EM.softmax(np.load(path2activations + '_' + layer + '_' + testing_condition +'.npy'))
+        import pdb; pdb.set_trace()
+        OUT_soft = EM.softmax(np.load(path2activations + '_' + layer + '_' + NetType + '_' + training_set + '_' + Testing_type + '_' + testing_set + '_' + testing_condition +'.npy'))
     else:
         paths = glob.glob(path2activations + '*')
         if Testing_type == '4illu':
@@ -121,7 +125,7 @@ def LoadandComputeOutputs(path2activations, NetType, Testing_type, layer, testin
 
 
 
-def computeErrors(path2activations, NetType, Testing_type, testing_set, layer, testing_condition):
+def computeErrors(path2activations, NetType, training_set, Testing_type, testing_set, layer, testing_condition):
     '''
     Function that loads previously saved outputs and computes the softmax. Different cases for different models.
     Then computes DE error of the predictions from weighted average of the outputs
@@ -136,7 +140,7 @@ def computeErrors(path2activations, NetType, Testing_type, testing_set, layer, t
 
     list_WCS_labels = algos.compute_WCS_Munsells_categories() # import idxes of WCS munsells among the 1600
 
-    OUT_soft = LoadandComputeOutputs(path2activations, NetType, Testing_type, layer, testing_condition) # Load output of last layer
+    OUT_soft = LoadandComputeOutputs(path2activations, NetType, training_set, Testing_type, testing_set, layer, testing_condition) # Load output of last layer
 
     # Compute Accuracy ------------------------------------------------------------------------------------
     nb_mod = OUT_soft.shape[0]
@@ -210,7 +214,7 @@ path2activations = args.path2activations
 
 # In[9]: Compute errors
 
-Accu, DE, CCI = computeErrors(path2activations, NetType, Testing_type, args.testing_set, args.layer, args.testing_condition)
+Accu, DE, CCI = computeErrors(path2activations, NetType, args.training_set, Testing_type, args.testing_set, args.layer, args.testing_condition)
 
 def save_pickle(path, dict):
     import pickle
@@ -226,4 +230,4 @@ def load_pickle(path):
 if not os.path.exists('../pickles'):
     os.mkdir('../pickles')
 
-save_pickle('../pickles/Errors_%s_%s_%s_%s_%s.pickle'%(NetType, Testing_type, Testing_set, args.layer, args.testing_condition), {'Accu': Accu, 'DE': DE, 'CCI': CCI})
+save_pickle('../pickles/Errors_%s_%s_%s_%s_%s_%s.pickle'%(NetType, args.training_set, Testing_type, Testing_set, args.layer, args.testing_condition), {'Accu': Accu, 'DE': DE, 'CCI': CCI})

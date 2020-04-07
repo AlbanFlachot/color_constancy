@@ -80,3 +80,13 @@ def XYZ2sRGB(XYZ):
     Trans = np.array([[3.24045, -1.537138, -0.49853],[-0.9692660, 1.8760108, 0.0415560],[0.0556434, -0.2040259, 1.0572252]])
     sRGB = np.dot(XYZ,Trans.T)
     return sRGB
+
+def cart2sph(x,y,z):
+	'''
+	Function to convert from cartesians to spherical coordinates
+	'''
+	XsqPlusYsq = x**2 + y**2
+	r = np.sqrt(XsqPlusYsq + z**2)# r
+	elev = np.arctan(z/np.sqrt(XsqPlusYsq)) # theta
+	az = np.arctan2(y,x) # phi
+	return np.array([r, az, elev])

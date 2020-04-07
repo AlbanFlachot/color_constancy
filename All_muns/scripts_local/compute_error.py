@@ -82,7 +82,7 @@ def load_layer(path):
 		LAYER.extend(layer)
 	return np.array(LAYER)
 
-# In[9]: Compute accuracy as a measure of LAB distance
+# In[9]: path to files
 
 txt_dir_path = '../../txt_files/'
 npy_dir_path = '../../npy_files/'
@@ -108,7 +108,7 @@ def LoadandComputeOutputs(path2activations, NetType, training_set, Testing_type,
     sequence_330 = sequence_1600[sequence_1600<330]
     #print(path2activations + '_' + layer + '_' + NetType + '_' + training_set + '_' + Testing_type + '_' + testing_set + '_' + testing_condition +'.npy')
     if (NetType == 'Original') | (NetType == 'ConvNet'):
-        import pdb; pdb.set_trace()
+        #import pdb; pdb.set_trace()
         OUT_soft = EM.softmax(np.load(path2activations + '_' + layer + '_' + NetType + '_' + training_set + '_' + Testing_type + '_' + testing_set + '_' + testing_condition +'.npy'))
     else:
         paths = glob.glob(path2activations + '*')

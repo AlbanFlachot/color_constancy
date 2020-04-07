@@ -9,25 +9,13 @@ Created on Thu Feb 28 14:24:13 2019
 
 
 from __future__ import print_function, division
-import os
 import torch
 
-from skimage import io, transform
 import numpy as np
-from torch.utils import data
-from torchvision import transforms, utils
-import pickle
-import MODELS as M
-import glob
-
-import scipy.io as sio
 
 # Ignore warnings
 import warnings
 warnings.filterwarnings("ignore")
-
-import torch.nn as nn
-import torch.nn.functional as F
 
 
 import sys
@@ -36,103 +24,13 @@ sys.path.append('../../')
 
 from DL_testing_functions_scripts import DL_testing_functions as DLtest
 from utils_scripts import algos
-
+from DL_training_functions_scripts import MODELS as M
 
 
 # CUDA for PyTorch
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if use_cuda else "cpu")
 #cudnn.benchmark = True
-
-
-# In[3]: FUNCTIONS
-
-
-def evaluation_Readouts_no_patch(net,READOUT_NETS,img,type):
-	if type == 'png':
-		I = np.array(io.imread(img)).astype(float)
-		if np.amax(I) > 2:
-			I = (I/255)
-		else:
-			I = I
-		#I = transform.resize(I,(224,128))
-		I = np.moveaxis(I,-1,0)
-		x = torch.from_numpy(I)
-		x = x.type(torch.FloatTensor)
-	elif type == 'npy':
-		I = np.load(img).astype(float)
-		trans_im = I.copy()
-		local_mean = np.mean(trans_im[0:8,27:100],axis = (0))
-		band = np.tile(local_mean[np.newaxis,:,:],(11,1,1))
-		local_std= np.std(trans_im[0:8,10:115])
-		lum_noise = np.random.normal(0,local_std/10,(11,73))
-		trans_im[8:19,27:100] = band+ np.tile(lum_noise[:,:,np.newaxis],(1,1,3))
-		I = trans_im.copy()
-		I = np.moveaxis(I,-1,0)
-		I = I - 3
-		x = torch.from_numpy(I)
-		x = x.type(torch.FloatTensor)
-	else:
-		x = torch.load(img)
-	x  = x.unsqueeze(0)
-	x = x.to(device)
-	outputs = net(x)
-	RC1 = READOUT_NETS[0](outputs['conv1'])
-	RC2 = READOUT_NETS[1](outputs['conv2'])
-	RC3 = READOUT_NETS[2](outputs['conv3'])
-	RF1 = READOUT_NETS[3](outputs['fc1'])
-	RF2 = READOUT_NETS[4](outputs['fc2'])
-	_, p1 = torch.max(RC1['out'].data, 1)
-	_, p2 = torch.max(RC2['out'].data, 1)
-	_, p3 = torch.max(RC3['out'].data, 1)
-	_, p4 = torch.max(RF1['out'].data, 1)
-	_, p5 = torch.max(RF2['out'].data, 1)
-	return (p1.cpu().detach().numpy())[0], (p2.cpu().detach().numpy())[0], (p3.cpu().detach().numpy())[0], (p4.cpu().detach().numpy())[0], (p5.cpu().detach().numpy())[0], (RC1['out'].cpu().detach().numpy())[0], (RC2['out'].cpu().detach().numpy())[0], (RC3['out'].cpu().detach().numpy())[0], (RF1['out'].cpu().detach().numpy())[0], (RF2['out'].cpu().detach().numpy())[0]
-
-def evaluation_Readouts_no_back(net,READOUT_NETS,img,type):
-	if type == 'png':
-		I = np.array(io.imread(img)).astype(float)
-		if np.amax(I) > 2:
-			I = (I/255)
-		else:
-			I = I
-		#I = transform.resize(I,(224,128))
-		I = np.moveaxis(I,-1,0)
-		x = torch.from_numpy(I)
-		x = x.type(torch.FloatTensor)
-	elif type == 'npy':
-		i = img
-		img = i[:-9] + i[-4:]
-		I_mask = np.load(i)
-		MASK = np.mean(I_mask,axis = -1)
-		MASK[MASK > 0.1] = 1
-		MASK[MASK != 1] = 0
-		I = np.load(img)
-		SCENE = np.zeros(I.shape)
-		SCENE[MASK==1] = I[MASK==1]
-		I = SCENE.astype(float)
-		I = np.moveaxis(I,-1,0)
-		I = I - 3
-		x = torch.from_numpy(I)
-		x = x.type(torch.FloatTensor)
-	else:
-		x = torch.load(img)
-	x  = x.unsqueeze(0)
-	x = x.to(device)
-	outputs = net(x)
-	RC1 = READOUT_NETS[0](outputs['conv1'])
-	RC2 = READOUT_NETS[1](outputs['conv2'])
-	RC3 = READOUT_NETS[2](outputs['conv3'])
-	RF1 = READOUT_NETS[3](outputs['fc1'])
-	RF2 = READOUT_NETS[4](outputs['fc2'])
-	_, p1 = torch.max(RC1['out'].data, 1)
-	_, p2 = torch.max(RC2['out'].data, 1)
-	_, p3 = torch.max(RC3['out'].data, 1)
-	_, p4 = torch.max(RF1['out'].data, 1)
-	_, p5 = torch.max(RF2['out'].data, 1)
-	return (p1.cpu().detach().numpy())[0], (p2.cpu().detach().numpy())[0], (p3.cpu().detach().numpy())[0], (p4.cpu().detach().numpy())[0], (p5.cpu().detach().numpy())[0], (RC1['out'].cpu().detach().numpy())[0], (RC2['out'].cpu().detach().numpy())[0], (RC3['out'].cpu().detach().numpy())[0], (RF1['out'].cpu().detach().numpy())[0], (RF2['out'].cpu().detach().numpy())[0]
-
-
 
 
 # In[9]: COMPUTE ACTIVATIONS DCC
@@ -232,7 +130,7 @@ Readout_nets = (Rc1, Rc2, Rc3, Rf1, Rf2)
 
 if args.testing_type == '4illu':
 	test_addr = '/home/alban/project_color_constancy/TRAINING/DATA/PNG/WCS/Test_4_illu_centered/'
-	
+
 for m in range(nb_models):
 	print('Evaluation of model %i' %(m+1))
 	weights = DIR_LOAD +'INST_%s/inst_%d_%s/epoch_%i.pt' %((args.training_set,m,args.training_set,EPOCHMAX[m]))

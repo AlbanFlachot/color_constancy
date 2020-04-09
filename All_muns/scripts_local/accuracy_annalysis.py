@@ -436,36 +436,34 @@ predicted_errors = full_predicted_errors(WCS_LAB_4.T, MUNSELL_LAB, MUNS_LAB_4 )
 
 #list_WCS_labels = algos.compute_WCS_Munsells_categories() # import idxes of WCS munsells among the 1600
 
-
-
-CCI_normal = np.array([np.median(ERRORS[layer]['normal']['CCI']) for layer in layers[::-1]])
-DE_normal = np.array([np.mean(ERRORS[layer]['normal']['DE']) for layer in layers[::-1]])
-Accu_normal = np.array([np.mean(ERRORS[layer]['normal']['Accu']) for layer in layers[::-1]])
+CCI_normal = np.array([np.median(ERRORS[layer]['normal']['CCI'], axis = (1,2,3)) for layer in layers[::-1]])
+DE_normal = np.array([np.mean(ERRORS[layer]['normal']['DE'], axis = (1,2,3)) for layer in layers[::-1]])
+Accu_normal = np.array([np.mean(ERRORS[layer]['normal']['Accu'], axis = (1,2)) for layer in layers[::-1]])
 #CCI_normal_bar = np.array([np.std(ERRORS[layer]['normal']['CCI']) for layer in layers])
 
-CCI_no_patch = np.array([np.median(ERRORS[layer]['no_patch']['CCI']) for layer in layers[::-1]])
-DE_no_patch = np.array([np.mean(ERRORS[layer]['no_patch']['DE']) for layer in layers[::-1]])
-Accu_no_patch = np.array([np.mean(ERRORS[layer]['no_patch']['Accu']) for layer in layers[::-1]])
+CCI_no_patch = np.array([np.median(ERRORS[layer]['no_patch']['CCI'], axis = (1,2,3)) for layer in layers[::-1]])
+DE_no_patch = np.array([np.mean(ERRORS[layer]['no_patch']['DE'], axis = (1,2,3)) for layer in layers[::-1]])
+Accu_no_patch = np.array([np.mean(ERRORS[layer]['no_patch']['Accu'], axis = (1,2)) for layer in layers[::-1]])
 #CCI_no_patch = np.load(CC_dir_path +'training_centered/All_muns/CCI_fost_weighted_no_patch_std.npy')
 
-CCI_no_back = np.array([np.median(ERRORS[layer]['no_back']['CCI']) for layer in layers[::-1]])
-DE_no_back = np.array([np.mean(ERRORS[layer]['no_back']['DE']) for layer in layers[::-1]])
-Accu_no_back = np.array([np.mean(ERRORS[layer]['no_back']['Accu']) for layer in layers[::-1]])
+CCI_no_back = np.array([np.median(ERRORS[layer]['no_back']['CCI'], axis = (1,2,3)) for layer in layers[::-1]])
+DE_no_back = np.array([np.mean(ERRORS[layer]['no_back']['DE'], axis = (1,2,3)) for layer in layers[::-1]])
+Accu_no_back = np.array([np.mean(ERRORS[layer]['no_back']['Accu'], axis = (1,2)) for layer in layers[::-1]])
 #CCI_no_back = np.load(CC_dir_path +'training_centered/WCS/finetuning/CCI_fost_weighted_no_back_std.npy')
 
-CCI_wrong_illu = np.array([np.median(ERRORS[layer]['wrong_illu']['CCI']) for layer in layers[::-1]])
-DE_wrong_illu = np.array([np.mean(ERRORS[layer]['wrong_illu']['DE']) for layer in layers[::-1]])
-Accu_wrong_illu = np.array([np.mean(ERRORS[layer]['wrong_illu']['Accu']) for layer in layers[::-1]])
+CCI_wrong_illu = np.array([np.median(ERRORS[layer]['wrong_illu']['CCI'], axis = (1,2,3)) for layer in layers[::-1]])
+DE_wrong_illu = np.array([np.mean(ERRORS[layer]['wrong_illu']['DE'], axis = (1,2,3)) for layer in layers[::-1]])
+Accu_wrong_illu = np.array([np.mean(ERRORS[layer]['wrong_illu']['Accu'], axis = (1,2)) for layer in layers[::-1]])
 #CCI_wrong_illu = np.load(CC_dir_path +'training_centered/All_muns/CCI_fost_weighted_wrong_illu_std.npy')
 
-CCI_D65 = np.array([np.nanmedian(ERRORS[layer]['D65']['CCI']) for layer in layers[::-1]])
-DE_D65 = np.array([np.nanmean(ERRORS[layer]['D65']['DE']) for layer in layers[::-1]])
-Accu_D65 = np.array([np.nanmean(ERRORS[layer]['D65']['Accu']) for layer in layers[::-1]])
+CCI_D65 = np.array([np.nanmedian(ERRORS[layer]['D65']['CCI'], axis = (1,2,3)) for layer in layers[::-1]])
+DE_D65 = np.array([np.nanmean(ERRORS[layer]['D65']['DE'], axis = (1,2,3)) for layer in layers[::-1]])
+Accu_D65 = np.array([np.nanmean(ERRORS[layer]['D65']['Accu'], axis = (1,2)) for layer in layers[::-1]])
 
 
 fig = plt.figure(figsize = (6,6))
 ax1 = fig.add_subplot(111)
-ax1.bar([1,2,3,4,5,6],[Accu_normal[-1], Accu_no_patch[-1], Accu_wrong_illu[-1], Accu_no_back[-1], Accu_D65[-1], predicted_errors['Accu'].mean()], color = ['k',[0.4,0.7,0.8],[0.4,0.8,0.4],[0.7,0.8,0.4],[0.8,0.4,0.4],'grey'],linewidth = 6)
+ax1.bar([1,2,3,4,5,6],[np.mean(Accu_normal, axis = -1)[-1], np.mean(Accu_no_patch,axis = -1)[-1], np.mean(Accu_wrong_illu, axis = -1)[-1], np.mean(Accu_no_back, axis = -1)[-1], np.mean(Accu_D65, axis = -1)[-1], predicted_errors['Accu'].mean()], color = ['k',[0.4,0.7,0.8],[0.4,0.8,0.4],[0.7,0.8,0.4],[0.8,0.4,0.4],'grey'],linewidth = 6)
 ax1.set_xticks([1,2,3,4,5,6])
 ax1.set_xticklabels([])
 plt.xticks(fontsize = 21)
@@ -479,7 +477,7 @@ plt.show()
 
 fig = plt.figure(figsize = (6,6))
 ax1 = fig.add_subplot(111)
-ax1.bar([1,2,3,4,5, 6],[DE_normal[-1], DE_no_patch[-1], DE_wrong_illu[-1], DE_no_back[-1], DE_D65[-1], predicted_errors['DE'].mean()],color = ['k',[0.4,0.7,0.8],[0.4,0.8,0.4],[0.7,0.8,0.4],[0.8,0.4,0.4],'grey'],linewidth = 6)
+ax1.bar([1,2,3,4,5, 6],[np.mean(DE_normal, axis = -1)[-1], np.mean(DE_no_patch,axis = -1)[-1], np.mean(DE_wrong_illu, axis = -1)[-1], np.mean(DE_no_back, axis = -1)[-1], np.mean(DE_D65, axis = -1)[-1], predicted_errors['DE'].mean()],color = ['k',[0.4,0.7,0.8],[0.4,0.8,0.4],[0.7,0.8,0.4],[0.8,0.4,0.4],'grey'],linewidth = 6)
 ax1.set_xticks([1,2,3,4,5, 6])
 ax1.set_xticklabels([])
 plt.xticks(fontsize = 21)
@@ -493,7 +491,7 @@ plt.show()
 
 fig = plt.figure(figsize = (6,6))
 ax1 = fig.add_subplot(111)
-ax1.bar([1,2,3,4,5,6],[CCI_normal[-1], CCI_no_patch[-1], CCI_wrong_illu[-1], CCI_no_back[-1], CCI_D65[-1], predicted_errors['CCI'].mean()],color = ['k',[0.4,0.7,0.8],[0.4,0.8,0.4],[0.7,0.8,0.4],[0.8,0.4,0.4],'grey'],linewidth = 6)
+ax1.bar([1,2,3,4,5,6],[np.mean(CCI_normal, axis = -1)[-1], np.mean(CCI_no_patch,axis = -1)[-1], np.mean(CCI_wrong_illu, axis = -1)[-1], np.mean(CCI_no_back, axis = -1)[-1], np.mean(CCI_D65, axis = -1)[-1], predicted_errors['CCI'].mean()],color = ['k',[0.4,0.7,0.8],[0.4,0.8,0.4],[0.7,0.8,0.4],[0.8,0.4,0.4],'grey'],linewidth = 6)
 ax1.set_xticks([1,2,3,4,5,6])
 ax1.set_xticklabels([])
 plt.xticks(fontsize = 21)
@@ -505,27 +503,45 @@ fig.tight_layout()
 fig.savefig(figures_dir_path + 'CCI.png', dpi=800)
 plt.show()
 
-#CCI_no_patch[CCI_no_patch<0] = 0
-#CCI_normal[CCI_normal<0] = 0
-#CCI_no_back[CCI_no_back<0] = 0
-#CCI_wrong_illu[CCI_wrong_illu<0] = 0
-#CCI_D65[CCI_D65<0] = 0
-fig = plt.figure(figsize = (8,8))
+
+
+dis.DEFINE_PLT_RC(type = 1)
+
+fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.errorbar([1,2,3,4,5],CCI_normal, yerr = [0,0,0,0,0],color = 'k',linewidth = 6)
-ax1.errorbar([1,2,3,4,5],CCI_no_patch, yerr = [0,0,0,0,0],color = [0.4,0.7,0.8],linewidth = 6)
-ax1.errorbar([1,2,3,4,5],CCI_wrong_illu +[0.01,0.01,0.01,0.01,0.01],yerr = [0,0,0,0,0],color = [0.4,0.8,0.4],linewidth = 6)
-ax1.errorbar([1,2,3,4,5], CCI_no_back +[0,0,0,0,0],yerr = [0,0,0,0,0],color = [0.7,0.8,0.4],linewidth = 6)
-ax1.errorbar([1,2,3,4,5], CCI_D65 + [-0.01,-0.01,-0.01,-0.01,-0.01],yerr = [0,0,0,0,0],color = [0.8,0.4,0.4],linewidth = 6)
-ax1.set_xlabel('Readouts',fontsize = 20)
+ax1.errorbar([1,2,3,4,5],np.mean(CCI_normal, axis = -1), yerr = np.std(CCI_normal, axis = -1),
+             color = 'k', label = 'CC$_{normal}$')
+ax1.errorbar([1,2,3,4,5],np.mean(CCI_no_patch, axis = -1), yerr = np.std(CCI_no_patch, axis = -1),
+             color = [0.4,0.7,0.8], label = 'CC$_{nopatch}$')
+#ax1.errorbar([1,2,3,4,5],CCI_wrong_illu +[0.01,0.01,0.01,0.01,0.01],yerr = [0,0,0,0,0],color = [0.4,0.8,0.4],linewidth = 6)
+#ax1.errorbar([1,2,3,4,5], CCI_no_back +[0,0,0,0,0],yerr = [0,0,0,0,0],color = [0.7,0.8,0.4],linewidth = 6)
+#ax1.errorbar([1,2,3,4,5], CCI_D65 + [-0.01,-0.01,-0.01,-0.01,-0.01],yerr = [0,0,0,0,0],color = [0.8,0.4,0.4],linewidth = 6)
+ax1.set_xlabel('Readouts')
 ax1.set_xticks([1,2,3,4,5])
 ax1.set_xticklabels(['RC1','RC2','RC3','RF1','RF2'])
-plt.xticks(fontsize = 17)
-plt.yticks(fontsize = 17)
+#plt.xticks(fontsize = 17)
+#plt.yticks(fontsize = 17)
 #plt.yticks(np.arange(-1,1.1,0.5),fontsize = 14)
-ax1.set_ylabel('Median CCI',fontsize = 20)
+ax1.set_ylabel('Median CCI')
+plt.legend()
 fig.tight_layout()
-fig.savefig(figures_dir_path + 'CCI_fost_readout.png', dpi=1200)
+fig.savefig(figures_dir_path + 'CCI_fost_readout.png', dpi=400)
 plt.show()
 
 
+diff = np.absolute(((1 - CCI_normal) - (1 - CCI_no_patch)))/ (1 - CCI_no_patch)
+
+fig = plt.figure()
+ax1 = fig.add_subplot(111)
+ax1.errorbar([1,2,3,4,5], np.mean(diff, axis = -1), np.std(diff, axis = -1), color = 'k', ls = '-')
+ax1.set_xlabel('Readouts')
+ax1.set_xticks([1,2,3,4,5])
+ax1.set_xticklabels(['RC1','RC2','RC3','RF1','RF2'])
+#plt.yticks(np.arange(-1,1.1,0.5),fontsize = 14)
+ax1.set_ylabel('Relative difference')
+fig.tight_layout()
+fig.savefig(figures_dir_path + 'CCI_fost_readout_diff.png', dpi=400)
+plt.show()
+
+np.mean((CCI_normal - CCI_no_patch)/CCI_normal, axis = -1)
+(CCI_normal - CCI_no_patch)/CCI_normal

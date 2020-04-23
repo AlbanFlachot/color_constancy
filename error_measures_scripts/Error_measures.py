@@ -11,29 +11,8 @@ npy_dir_path = '../../npy_files/'
 LIST OF FUNCTIONS USED for computing complex errors, Delta E, Color Contancy Index etc..
 '''
 
-def DE_error_all(CHROMA_OBJ, MUNSELL_LAB):
-	'''
-    Compute DelatE error forall predicitons given by the classsic algo of color constancy
-        CHROMA_OBJ: Predictions given by the alogrithms. shape = [munsell, examplars (illu), algo, color dim]
-		MUNSELL_LAB: Correct CIELab coordinates for the munsells
-    Outputs:
-        DE: Delta E error. shape = [munsell, examplars (illu), algo]
-    '''
-	DE = np.zeros(CHROMA_OBJ.shape[:-1])
-	for muns in range(CHROMA_OBJ.shape[0]):
-		DE[muns] = DE_error(CHROMA_OBJ[muns], MUNSELL_LAB[muns])
-	return DE
 
-def DE_error(chroma_obj, munsell_lab):
-	'''
-    Compute DelatE error for some predicitons given by the classsic algo of color constancy
-        CHROMA_OBJ: Predictions given by the alogrithms. shape = [examplars (illu), algo, color dim]
-		MUNSELL_LAB: Correct CIELab coordinates for the munsell
-    Outputs:
-        dist: Delta E error. shape = [examplars (illu), algo]
-    '''
-	dist = np.linalg.norm(chroma_obj - munsell_lab, axis = -1)
-	return dist
+
 
 def softmax(x):
     '''Compute softmax values for each sets of scores in x. Assumes the last dim is the dim upon make sum'''

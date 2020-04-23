@@ -76,7 +76,7 @@ def from_img_2_obj(im_paths_mat, path2save, mat_classic_cc_mat, shape, save_path
 
 	return OBJ
 
-def predicted_chromaticity(im_paths_mat, mat_classic_cc_mat, shape, ground_truth_LMS, max_pxl):
+def predicted_chromaticity(im_paths_mat, mat_classic_cc_mat, shape, max_pxl, correction = True):
 	'''
 	Function that loads full images, their mask, extracts the object area and saves these.
 
@@ -88,8 +88,6 @@ def predicted_chromaticity(im_paths_mat, mat_classic_cc_mat, shape, ground_truth
 	Outputs:
 		- OBJ: List of the croped object.
 	'''
-	wh  = np.array([17.95504939, 18.96455292, 20.36406225]) # D65 chromaticity
-	wh = wh/np.mean(wh) # nomrmalization
 	CHROMA_OBJ_MEAN = np.zeros(shape)
 	CHROMA_OBJ_LUM = np.zeros(shape)
 	CHROMA_OBJ_MEDIAN = np.zeros(shape)
@@ -98,10 +96,10 @@ def predicted_chromaticity(im_paths_mat, mat_classic_cc_mat, shape, ground_truth
 		for illu in range(shape[1]):
 			for exp in range(shape[2]):
 				#print im_paths_mat[muns,illu,exp]
-				image = np.load(im_paths_mat[muns,illu,exp][:12]+'mnt/awesome/alban/'+im_paths_mat[muns,illu,exp][12:]) # load image
+				image = np.load(im_paths_mat[muns,illu,exp]) # load image
 				image_norm = image/max_pxl.max() # normalize it
 				image_norm = np.expand_dims(image_norm,axis = 2)
-				image_norm = image_norm*np.array([0.95595725, 1.00115551, 1.04288724])
+
 				#import pdb; pdb.set_trace()
 				if mat_classic_cc_mat.size == 3:
 					image_norm_ntr = image_norm/(mat_classic_cc_mat/np.mean(mat_classic_cc_mat))
@@ -110,7 +108,9 @@ def predicted_chromaticity(im_paths_mat, mat_classic_cc_mat, shape, ground_truth
 				else:
 					image_norm_ntr = (np.repeat(image_norm,shape[3],axis = 2)/
                     (mat_classic_cc_mat[muns,illu,exp,:,:]/np.mean(mat_classic_cc_mat[muns,illu,exp,:,:])))
-				mask = np.load(im_paths_mat[muns,illu,exp][:12]+'mnt/awesome/alban/'+im_paths_mat[muns,illu,exp][12:-4] + '_mask' + '.npy')
+				if correction:
+					image_norm_ntr = image_norm_ntr*np.array([0.95595725, 1.00115551, 1.04288724]) # D65 chromaticity
+				mask = np.load(im_paths_mat[muns,illu,exp][:-4] + '_mask' + '.npy')
 				mask_1 = np.mean(mask, axis = -1)
 				mask_1[mask_1>0.2] = 1
 				object = (image_norm_ntr.T*mask_1.T).T

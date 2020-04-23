@@ -27,7 +27,7 @@ for train_condition in train_sets:
 	    args = shlex.split(command)
 	    subprocess.call(args)'''
 	    
-command = "python -i Activations_readouts.py --gpu_id %i --model Original --testing_set WCS --testing_type 4illu --testing_condition %s --training_set %s --load_dir %s" %(gpu, test_conditions[0], train_sets[1], load_dir)
+command = "python -i Activations_readouts.py --gpu_id %i --model Original --testing_set WCS --testing_type D65 --testing_condition normal --training_set %s --load_dir %s" %(gpu, train_sets[1], load_dir)
 print(command)
 args = shlex.split(command)
 subprocess.call(args)

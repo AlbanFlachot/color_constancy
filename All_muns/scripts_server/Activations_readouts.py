@@ -33,6 +33,14 @@ device = torch.device("cuda:0" if use_cuda else "cpu")
 #cudnn.benchmark = True
 
 
+# In[9]: path to files
+
+txt_dir_path = '../../txt_files/'
+npy_dir_path = '../../npy_files/'
+pickles_dir_path = '../pickles/'
+figures_dir_path = '../figures/'
+
+
 # In[9]: COMPUTE ACTIVATIONS DCC
 import argparse
 
@@ -130,6 +138,9 @@ Readout_nets = (Rc1, Rc2, Rc3, Rf1, Rf2)
 
 if args.testing_type == '4illu':
 	test_addr = '/home/alban/project_color_constancy/TRAINING/DATA/PNG/WCS/Test_4_illu_centered/'
+elif args.testing_type == 'D65':
+	ILLU = np.load(npy_dir_path + 'ILLU.npy')
+	test_addr = '/home/alban/project_color_constancy/TRAINING/DATA/PNG/WCS/validation_D65_centered/'
 
 for m in range(nb_models):
 	print('Evaluation of model %i' %(m+1))
@@ -155,7 +166,10 @@ for m in range(nb_models):
 	for muns in range(nb_obj):
 		for ill in range(nb_illu):
 			for exp in range(nb_ex):
-				img = test_addr + 'object%i_%s_%i.npy' %(muns,chr(ill+65),exp)
+				if args.testing_type == '4illu':
+					img = test_addr + 'object%i_%s_%i.npy' %(muns,chr(ill+65),exp)
+				else:
+					img = test_addr + 'object%i_illu_%s.npy' %(muns,ILLU[10*ill*exp])
 				out_c1[m,muns, ill, exp], pc1[m, muns, ill, exp] = DLtest.evaluation_Readouts(net, img, Readout_nets[0], 'conv1', args.testing_condition, 'npy')
 				out_c2[m,muns, ill, exp], pc2[m, muns, ill, exp] = DLtest.evaluation_Readouts(net, img, Readout_nets[1], 'conv2', args.testing_condition, 'npy')
 				out_c3[m,muns, ill, exp], pc3[m, muns, ill, exp] = DLtest.evaluation_Readouts(net, img, Readout_nets[2], 'conv3',args.testing_condition, 'npy')

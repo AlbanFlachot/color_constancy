@@ -101,7 +101,7 @@ def evaluation_Readouts(net,img,readout_net,layer = 'fc2',testing = 'normal',typ
 
 def evaluation(predictions, label):
     s = np.sum(predictions == label)
-    return 100*s/len(predictions)
+    return 100*s/size(predictions)
 
 def training_curves(training_dir, training_set, nb_epoch, Readout = False, layer = ''):
 	import glob

@@ -7,7 +7,7 @@ Created on Mon Sep  9 17:45:58 2019
 """
 import numpy as np
 import os
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 def save_cc_images(IMG, names_algo, path, img_name):
 	'''
@@ -76,7 +76,7 @@ def from_img_2_obj(im_paths_mat, path2save, mat_classic_cc_mat, shape, save_path
 
 	return OBJ
 
-def predicted_chromaticity(im_paths_mat, mat_classic_cc_mat, shape, max_pxl, correction = True):
+def predicted_chromaticity(im_paths_mat, mat_classic_cc_mat, shape, max_pxl, D65_correction = True):
 	'''
 	Function that loads full images, their mask, extracts the object area and saves these.
 
@@ -108,7 +108,7 @@ def predicted_chromaticity(im_paths_mat, mat_classic_cc_mat, shape, max_pxl, cor
 				else:
 					image_norm_ntr = (np.repeat(image_norm,shape[3],axis = 2)/
                     (mat_classic_cc_mat[muns,illu,exp,:,:]/np.mean(mat_classic_cc_mat[muns,illu,exp,:,:])))
-				if correction:
+				if D65_correction:
 					image_norm_ntr = image_norm_ntr*np.array([0.95595725, 1.00115551, 1.04288724]) # D65 chromaticity
 				mask = np.load(im_paths_mat[muns,illu,exp][:-4] + '_mask' + '.npy')
 				mask_1 = np.mean(mask, axis = -1)

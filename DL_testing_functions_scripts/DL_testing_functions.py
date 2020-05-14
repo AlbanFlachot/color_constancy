@@ -4,7 +4,7 @@ import torch
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if use_cuda else "cpu")
 
-def retrieve_activations(net,img,testing = 'normal', type = 'npy'):
+def retrieve_activations(net,img,testing = 'normal', type = 'npy', val_im_empty_scenes = False):
 	if type == 'png':
 		I = np.array(io.imread(img)).astype(float)
 		if np.amax(I) > 2:

@@ -5,35 +5,24 @@ Created on Tue Mar 12 16:18:07 2019
 
 @author: alban
 """
-
-# In[1]:
-
-
-
 from __future__ import print_function, division
-import os
 import torch
-from skimage import io, transform
-import numpy as np
 
-import pickle
-import MODELS as M
-import matplotlib.patheffects as PathEffects
-import scipy.io as sio
-from random import randint
-import FUNCTIONS as F
+import numpy as np
 
 # Ignore warnings
 import warnings
 warnings.filterwarnings("ignore")
 
 
+import sys
+sys.path.append('../../')
 
-# In[2]:
 
-import matplotlib.patheffects as PathEffects
+from DL_testing_functions_scripts import DL_testing_functions as DLtest
+from utils_scripts import algos
+from DL_training_functions_scripts import MODELS as M
 
-os.environ["CUDA_VISIBLE_DEVICES"]="3"
 
 # CUDA for PyTorch
 use_cuda = torch.cuda.is_available()
@@ -41,203 +30,76 @@ device = torch.device("cuda:0" if use_cuda else "cpu")
 #cudnn.benchmark = True
 
 
-# In[3]: FUNCTIONS
+# In[9]: path to files
 
-## TEST MODEL
-def TESTING_FUNC(datatype,model,weights,list_WCS_labels = None):
-        
-    with open("val_labels" +datatype, "rb") as fp:   # Unpickling
-        val_lab = pickle.load(fp)
-    
-    with open("val_ima" +datatype, "rb") as fp:   # Unpickling
-        val_im = pickle.load(fp)
-    
-    LIST = [[None]] * (max(val_lab)+1)
-    for count in range(len(val_lab)):
-        LIST[val_lab[count]] = LIST[val_lab[count]]+[val_im[count]]
-    
-    
-    net = model
-    
-    net.load_state_dict(torch.load(weights))
-    net.to(device)
-    net.eval()
-    
-    PREDICTION = np.ones((len(LIST),50))
-    for l in range(len(LIST)):
-        PREDICTION[l] = testing(net, LIST[l][1:51],'npy')
-    
-    EVAL = np.zeros(len(LIST))
-    for i in range(len(EVAL)):
-        if list_WCS_labels == None:
-            EVAL[i] = evaluation(PREDICTION[i],i)
-        else:
-            EVAL[i] = evaluation(PREDICTION[i],list_WCS_labels[i])
-    return PREDICTION,EVAL
+txt_dir_path = '../../txt_files/'
+npy_dir_path = '../../npy_files/'
+pickles_dir_path = '../pickles/'
+figures_dir_path = '../figures/'
 
 
-def testing(net,list_obj1,type):
-    count = 0
-    #print(type)
-    predictions = np.zeros(len(list_obj1))
-    for i in list_obj1:
-        if type == 'png':
-            I = np.array(io.imread(i)).astype(float)
-            if np.amax(I) > 2:
-                I = (I/255)
-            else:
-                I = I
-            #I = transform.resize(I,(224,128))
-            I = np.moveaxis(I,-1,0)
-            x = torch.from_numpy(I)
-            x = x.type(torch.FloatTensor)
-        elif type == 'npy':
-            I = np.load(i).astype(float)
-            I = np.moveaxis(I,-1,0)
-            I = I - 3
-            x = torch.from_numpy(I)
-        else:
-            x = torch.load(i)
-        x  = x.unsqueeze(0)
-        x = x.to(device)
-        if x.size()[2] < 220:
-            continue
-        outputs = net(x)
-        _, predictions[count] = torch.max(outputs['out'].data, 1)
-        count +=1
-    return predictions
+# In[9]: COMPUTE ACTIVATIONS DCC
+import argparse
 
-def evaluation(predictions, label):
-    s = np.sum(predictions == label)
-    return 100*s/len(predictions)
+parser = argparse.ArgumentParser(description='Parsing variables for rendering images')
 
-def retrieve_activations(net,img,type = 'npy'):
-	if type == 'png':
-		I = np.array(io.imread(img)).astype(float)
-		if np.amax(I) > 2:
-		    I = (I/255)
-		else:
-		    I = I
-		#I = transform.resize(I,(224,128))
-		I = np.moveaxis(I,-1,0)
-		x = torch.from_numpy(I)
-		x = x.type(torch.FloatTensor)
-	elif type == 'npy':
-		I = np.load(img).astype(float)
-		I = np.moveaxis(I,-1,0)
-		I = I - 3
-		x = torch.from_numpy(I)
-		x = x.type(torch.FloatTensor)
-	else:
-		x = torch.load(img)
-	x  = x.unsqueeze(0)
-	x = x.to(device)
-	outputs = net(x)
-	conv1 = np.amax(outputs['conv1'].cpu().detach().numpy(),axis = (2,3))
-	conv2 = np.amax(outputs['conv2'].cpu().detach().numpy(),axis = (2,3))
-	conv3 = np.amax(outputs['conv3'].cpu().detach().numpy(),axis = (2,3))
-	fc1 = outputs['fc1'].cpu().detach().numpy()
-	fc2 = outputs['fc2'].cpu().detach().numpy()
-	_, p = torch.max(outputs['out'].data, 1)
-	out = outputs['out'].cpu().detach().numpy()
-	return conv1[0],conv2[0],conv3[0],fc1[0],fc2[0], out[0], (p.cpu().detach().numpy())[0]
+parser.add_argument('--gpu_id', default=0, type=int, metavar='N',
+                    help='ID of Gpu to use')
 
-def retrieve_activations_no_patch(net,img,type = 'npy'):
-	if type == 'png':
-		I = np.array(io.imread(img)).astype(float)
-		if np.amax(I) > 2:
-		    I = (I/255)
-		else:
-		    I = I
-		#I = transform.resize(I,(224,128))
-		I = np.moveaxis(I,-1,0)
-		x = torch.from_numpy(I)
-		x = x.type(torch.FloatTensor)
-	elif type == 'npy':
-		I = np.load(img).astype(float)
-		trans_im = I.copy()
-		local_mean = np.mean(trans_im[0:8,27:100],axis = (0))
-		band = np.tile(local_mean[np.newaxis,:,:],(11,1,1))
-		local_std= np.std(trans_im[0:8,10:115])
-		lum_noise = np.random.normal(0,local_std/10,(11,73))
-		trans_im[8:19,27:100] = band+ np.tile(lum_noise[:,:,np.newaxis],(1,1,3))
-		I = trans_im.copy()
-		I = np.moveaxis(I,-1,0)
-		I = I - 3
-		x = torch.from_numpy(I)
-		x = x.type(torch.FloatTensor)
-	else:
-		x = torch.load(img)
-	x  = x.unsqueeze(0)
-	x = x.to(device)
-	outputs = net(x)
-	conv1 = np.amax(outputs['conv1'].cpu().detach().numpy(),axis = (2,3))
-	conv2 = np.amax(outputs['conv2'].cpu().detach().numpy(),axis = (2,3))
-	conv3 = np.amax(outputs['conv3'].cpu().detach().numpy(),axis = (2,3))
-	fc1 = outputs['fc1'].cpu().detach().numpy()
-	fc2 = outputs['fc2'].cpu().detach().numpy()
-	_, p = torch.max(outputs['out'].data, 1)
-	out = outputs['out'].cpu().detach().numpy()
-	return conv1[0],conv2[0],conv3[0],fc1[0],fc2[0], out[0], (p.cpu().detach().numpy())[0]
+parser.add_argument('--load_dir', default='', type=str, metavar='str',
+                    help='dir where to load models, weights and training curves')
 
-def retrieve_activations_wrong_illu(net,img,type,val_im_empty_scenes):
-	index_illu = randint(0, len(val_im_empty_scenes)-1)
-	if type == 'png':
-		I = np.array(io.imread(img)).astype(float)
-		if np.amax(I) > 2:
-			I = (I/255)
-		else:
-			I = I
-		#I = transform.resize(I,(224,128))
-		I = np.moveaxis(I,-1,0)
-		x = torch.from_numpy(I)
-		x = x.type(torch.FloatTensor)
-	elif type == 'npy':
-		image = img[:-9] + img[-4:]
-		I_mask = np.load(img)
-		MASK = np.mean(I_mask,axis = -1)
-		MASK[MASK > np.amax(MASK)/255] = 1
-		MASK[MASK != 1] = 0
-		I = np.load(image)  
-		scene = val_im_empty_scenes[index_illu]
-		SCENE = np.load(scene)                     
-		SCENE[MASK==1] = I[MASK==1]         
-		I = SCENE.astype(float)
-		I = np.moveaxis(I,-1,0)
-		I = I - 3
-		x = torch.from_numpy(I)
-		x = x.type(torch.FloatTensor)
-	else:
-		x = torch.load(img)
-	x  = x.unsqueeze(0)
-	x = x.to(device)
-	outputs = net(x)
-	conv1 = np.amax(outputs['conv1'].cpu().detach().numpy(),axis = (2,3))
-	conv2 = np.amax(outputs['conv2'].cpu().detach().numpy(),axis = (2,3))
-	conv3 = np.amax(outputs['conv3'].cpu().detach().numpy(),axis = (2,3))
-	fc1 = outputs['fc1'].cpu().detach().numpy()
-	fc2 = outputs['fc2'].cpu().detach().numpy()
-	_, p = torch.max(outputs['out'].data, 1)
-	out = outputs['out'].cpu().detach().numpy()
-	return conv1[0],conv2[0],conv3[0],fc1[0],fc2[0], out[0], (p.cpu().detach().numpy())[0]
+parser.add_argument('--testing_dir', default='', type=str, metavar='str',
+                    help='dir where to find models and training curves')
 
-# In[7]: PLOT TRAINING CURVES
-nb_mod = 10
-nb_epoch = 90
-nb_obj = 330
+parser.add_argument('--training_set', default='CC', type=str, metavar='str',
+                    help='to distiguish between CC and D65')
+
+parser.add_argument('--testing_set', default='WCS', type=str, metavar='str',
+                    help='to distiguish between WCS and all muns')
+
+parser.add_argument('--testing_type', default='4illu', type=str, metavar='str',
+                    help='to distiguish between the illuminant kind')
+
+parser.add_argument('--testing_condition', default='normal', type=str, metavar='str',
+                    help='to distiguish between the different conditions (nromal, no patch, wrong patch..)')
+
+parser.add_argument('--model', default='Ref', type=str, metavar='str',
+                    help='to distiguish between the different models')
+
+args = parser.parse_args()
+
+
+if args.testing_set == 'WCS':
+    nb_obj = 330
+elif args.testing_set == 'all':
+    nb_obj = 1600
+
+if args.testing_type == '4illu':
+    nb_illu = 4
+    nb_ex = 10
+elif args.testing_type == 'var':
+    nb_illu = 28
+    nb_ex = 1
+elif args.testing_type == 'D65':
+    nb_illu = 1
+    nb_ex = 28
+
 
 ## Xp set
 ####---------------------------------------------------------------------------------------------------------------------
-Training_curv = np.zeros((nb_mod,nb_epoch))
+
+list_WCS_labels = algos.compute_WCS_Munsells_categories() # import idxes of WCS munsells among the 1600
+
+DIR_LOAD = args.load_dir
+
+
 Training_curv_D65 = np.zeros((nb_mod,nb_epoch))
 epochmax = np.zeros((nb_mod))
 epochmax_D65 = np.zeros((nb_mod))
 
-for i in range(nb_mod):
-    #Training_curv[i] = np.load('../mod_N2/inst_%dtrain_curve.npy' %((i+1)))
-    Training_curv[i] = np.load('inst%itrain_curve.npy' %(i))
-    epochmax[i] = np.argmax(Training_curv[i])
-    print('inst %i achieves max accuracy of %d at epoch %i' %(i, np.amax(Training_curv[i]),np.argmax(Training_curv[i])))
+Training_curv, epochmax = DLtest.training_curves(DIR_LOAD + 'INST_%s/'%(args.training_set),args.training_set, 90)
+
 
 epochmax[[2,-3]] = 37
 
@@ -246,56 +108,60 @@ epochmax[[2,-3]] = 37
 with open("/home/alban/project_color_constancy/PYTORCH/WCS/train_centered/WCS/ima_empty_scenes.txt", "rb") as fp:   # Unpickling
         val_im_empty_scenes = pickle.load(fp)
 
-WCS_muns = list()
-with open("/home/alban/project_color_constancy/PYTORCH/WCS/WCS_muns.txt") as f:
-    for line in f:
-       WCS_muns.append(line.split()[0])
-       
-       
-All_muns = list()
-with open("/home/alban/project_color_constancy/PYTORCH/WCS/munsell_labels.txt") as f:
-    for line in f:
-       All_muns.append(line.split()[0])
 
-WCS_i = [All_muns.index(WCS_muns[i]) for i in range(len(WCS_muns))]
 
-shape = (nb_mod, 330, 4,10)
-conv1 = np.zeros((nb_mod, 330, 4,10, 16))
-conv2 = np.zeros((nb_mod, 330, 4,10, 32))
-conv3 = np.zeros((nb_mod, 330, 4,10, 64))
-fc1 = np.zeros((nb_mod, 330, 4,10, 250))
-fc2 = np.zeros((nb_mod, 330, 4,10, 250))
-out = np.zeros((nb_mod, 330, 4,10, 1600))
-predictions = np.zeros(shape)
-EVAL = np.zeros(shape[:3])
+conv1 = np.zeros((nb_models,nb_obj,nb_illu,nb_ex, 16))
+conv2 = np.zeros((nb_models,nb_obj,nb_illu,nb_ex, 32))
+conv3 = np.zeros((nb_models,nb_obj,nb_illu,nb_ex, 64))
+fc1 = np.zeros((nb_models,nb_obj,nb_illu,nb_ex, 250))
+fc2 = np.zeros((nb_models,nb_obj,nb_illu,nb_ex, 250))
+out = np.zeros((nb_models,nb_obj,nb_illu,nb_ex, 1600))
+predictions = np.zeros(nb_models,nb_obj,nb_illu,nb_ex)
+EVAL = np.zeros(nb_models,nb_obj,nb_illu)
 
-dir_addr = '/home/alban/project_color_constancy/TRAINING/DATA/muns_illu/'
+if args.model == 'Ref':
+	net = M.Ref()
+elif args.model == 'Original':
+    net = M.Net2_4ter_norm()
+
+if args.testing_type == '4illu':
+	test_addr = '/home/alban/project_color_constancy/TRAINING/DATA/PNG/WCS/Test_4_illu_centered/'
+elif args.testing_type == 'D65':
+	ILLU = np.load(npy_dir_path + 'ILLU.npy')
+	test_addr = '/home/alban/project_color_constancy/TRAINING/DATA/PNG/WCS/validation_D65_centered/'
+elif args.testing_type == '5illu':
+	test_addr = '/home/alban/project_color_constancy/TRAINING/DATA/PNG/WCS/Test_4_illu_centered/'
+
+
+
 for m in range(nb_mod):
-	print('Evaluation of model %i' %m)
-	model = M.Net2_4ter_norm()
-	#weights = '../mod_N2/inst_%d/model_3conv_epoch_%i.pt' %(m+1,epochmax[m])
-	weights = 'INST/inst%i/epoch_%i.pt' %(m, epochmax[m])
-	net = model
-	net.to(device)
+	print('Evaluation of model %i' %(m+1))
+	weights = DIR_LOAD +'INST_%s/inst_%d_%s/epoch_%i.pt' %((args.training_set,m,args.training_set,EPOCHMAX[m]))
 	net.load_state_dict(torch.load(weights))
+	net.to(device)
 	net.eval()
-	for muns in range(330):
-		for ill in range(4):
-			for exp in range(10):
-				img_addr = dir_addr + 'object%i/object%i_%s_%i.npy' %(muns,chr(ill+65),exp)
-				conv1[m,muns,ill,exp], conv2[m,muns,ill,exp], conv3[m,muns,ill,exp], fc1[m,muns,ill,exp], fc2[m,muns,ill,exp], out[m,muns,ill,exp],  predictions[m,muns,ill,exp] = retrieve_activations_wrong_illu(net, img_addr,'npy', val_im_empty_scenes)
-			EVAL[m,muns,ill] = evaluation(predictions[m,muns,ill],WCS_i[muns])
+	for muns in range(nb_obj):
+		for ill in range(nb_illu):
+			for exp in range(nb_ex):
+				if args.testing_type == '4illu':
+					img = test_addr + 'object%i_%s_%i.npy' %(muns,chr(ill+65),exp)
+				else:
+					img = test_addr + 'object%i_illu_%s.npy' %(muns,ILLU[10*ill*exp])
+				conv1[m,muns,ill,exp], conv2[m,muns,ill,exp], conv3[m,muns,ill,exp], fc1[m,muns,ill,exp], fc2[m,muns,ill,exp], out[m,muns,ill,exp],  predictions[m,muns,ill,exp] = DLtest.retrieve_activations(net, img_addr,'npy', val_im_empty_scenes)
+	for munsell in range(nb_obj):
+		EVAL[m,munsell] = DLtest.evaluation(pfc2[m,munsell],list_WCS_labels[munsell])
 	print('Result = %d' %np.mean(EVAL[m]))
 
+complement_addr = '_%s_%s_%s_%s_%s.npy'%(args.model, args.training_set, args.testing_type, args.testing_set, args.testing_condition)
 
-np.save('layers/conv1_centered_muns_illu.npy', conv1)
-np.save('layers/conv2_centered_muns_illu.npy', conv2)
-np.save('layers/conv3_centered_muns_illu.npy', conv3)
-np.save('layers/fc1_centered_muns_illu.npy', fc1)
-np.save('layers/fc2_centered_muns_illu.npy', fc2)
-np.save('layers/predictions_centered_muns_illu.npy', predictions)
-np.save('layers/out_centered_muns_illu.npy', out)
-np.save('layers/evaluation_centered_muns_illu.npy', EVAL)
+np.save(DIR_LOAD +'layers/conv1'+ complement_addr, conv1)
+np.save('layers/conv2'+ complement_addr, conv2)
+np.save('layers/conv3'+ complement_addr, conv3)
+np.save('layers/fc1'+ complement_addr, fc1)
+np.save('layers/fc2'+ complement_addr, fc2)
+np.save('layers/predictions'+ complement_addr, predictions)
+np.save('layers/out'+ complement_addr, out)
+np.save('layers/evaluation'+ complement_addr, EVAL)
 
 
 

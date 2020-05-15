@@ -18,19 +18,19 @@ def compute_WCS_Munsells_categories():
 	'''
 	Function that maps WCS munsells onto the 1600 munsells indexes (e.g WCS muns 0 = muns 1521)
 	'''
-	
+
 	## list of Munsells used in the World Color Survey
 	WCS_muns = list()
 	with open(txt_dir_path + "WCS_muns.txt") as f:
 		for line in f:
 		   WCS_muns.append(line.split()[0])
 
-	## list of 1600 Munsells	
+	## list of 1600 Munsells
 	All_muns = list()
 	with open(txt_dir_path + "munsell_labels.txt") as f:
 		for line in f:
 		   All_muns.append(line.split()[0])
-		   
+
 	return np.asarray([All_muns.index(WCS_muns[i]) for i in range(len(WCS_muns))]) ## Position of the WCS munsells among the 1600 munsells
 
 
@@ -226,7 +226,7 @@ def procrustes(X, Y, scaling=True, reflection='best'):
         b = traceTA * normX / normY
 
         # standarised distance between X and b*Y*T + c
-        d = 1 - traceTA**2
+        d = traceTA**2
 
         # transformed coords
         Z = normX*traceTA*np.dot(Y0, T) + muX

@@ -105,6 +105,7 @@ conditions = ['normal','no_patch', 'wrong_illu', 'no_back', 'D65']
 layers = ['fc2','fc1', 'c3', 'c2', 'c1']
 
 ERRORS = {}
+Errors_D65_D65 = {}
 
 path = pickles_dir_path
 
@@ -113,9 +114,12 @@ for layer in layers:
     for condition in conditions[:-1]:
         ERRORS[layer][condition] = load_pickle(path + 'Errors_Original_CC_4illu_WCS_%s_%s.pickle'%(layer, condition))
     ERRORS[layer][conditions[-1]] = load_pickle(path + 'Errors_Original_D65_4illu_WCS_%s_normal.pickle'%(layer))
+    Errors_D65_D65[layer] = load_pickle(path + 'Errors_Original_D65_D65_WCS_%s_normal.pickle'%(layer))
 
 if not os.path.exists('../figures'):
     os.mkdir('../figures')
+
+
 
 #_____________________________________________________________________________________________________________________________
 
@@ -176,21 +180,34 @@ MUNS_LAB_4 = np.moveaxis(np.load(npy_dir_path +'LAB_MUNS_ABCD.npy'),0,-1)
 
 MUNSELL_LAB = np.load(npy_dir_path +'MUNSELL_LAB.npy')
 
-
+MUNS_neighbouring_dist = np.load(npy_dir_path + 'MUNS_neighbouring_dist.npy')
+WCS_neighbouring_dist = MUNS_neighbouring_dist[algos.compute_WCS_Munsells_categories()]
 
 DE_illu = np.mean(ERRORS[layers[0]][conditions[0]]['DE'],axis = (0,1,-1))
 DE_muns = np.mean(ERRORS[layers[0]][conditions[0]]['DE'],axis = (0,-2,-1))
+print('Average Delta E value per illuminations:')
 print(DE_illu)
 
-DE_MAT = from330to8x40(np.mean(ERRORS[layers[0]][conditions[0]]['DE'],axis = (-1,-2)))
+DE_D65 = np.mean(Errors_D65_D65[layers[0]]['DE'],axis = (0,1,-1))
+print('Average Delta E value for D65:')
+print(DE_D65)
 
+
+DE_MAT = from330to8x40(np.mean(ERRORS[layers[0]][conditions[0]]['DE'],axis = (-1,-2)))
+DE_MAT_D65 = from330to8x40(np.mean(Errors_D65_D65[layers[0]]['DE'],axis = (-1,-2)))
+DIST_neighbours_MAT = from330to8x40(WCS_neighbouring_dist)
+
+normalized_DELTAE = np.mean(DE_MAT, axis = 0)/DIST_neighbours_MAT
+normalized_DELTAE[np.mean(DE_MAT, axis = 0) == 0] = 0
 
 Accu_MAT = from330to8x40(ERRORS[layers[0]][conditions[0]]['Accu'])
 
 dis.display_munsells_inv(np.mean(Accu_MAT,axis = (0,-1)), np.amax(np.mean(Accu_MAT,axis = (0,-1))))
 dis.display_munsells_inv(np.mean(DE_MAT,axis = 0), np.amax(np.mean(DE_MAT,axis = 0)))
+dis.display_munsells_inv(np.mean(DE_MAT_D65,axis = 0), np.amax(np.mean(DE_MAT_D65,axis = 0)))
 dis.display_munsells_inv(DE_MAT[0], np.amax(DE_MAT[0]))
-
+dis.display_munsells_inv(DIST_neighbours_MAT, np.amax(DIST_neighbours_MAT))
+dis.display_munsells_inv(normalized_DELTAE,np.amax(normalized_DELTAE))
 
 # Comparison with consistency
 dis.display_munsells_inv(np.std(DE_MAT,axis = 0), np.amax(np.std(DE_MAT,axis = 0)))

@@ -118,6 +118,42 @@ def scatter_MDS(RESULT,title,path1,path2,RGB_muns, LABELS = ['DIM 1','DIM 2','DI
     fig.savefig(path2,format='png')
     plt.close()
 
+def scatter_MDS_vert(RESULT,title,path1,path2,RGB_muns, LABELS = ['DIM 1','DIM 2','DIM 3', 'DIM4'], display = True):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(RESULT[:,0], RESULT[:,1], RESULT[:,2], marker='o',c = RGB_muns)
+    ax.set_xlabel(LABELS[0],fontsize = 15)
+    ax.set_ylabel(LABELS[1],fontsize = 15)
+    ax.set_zlabel(LABELS[2],fontsize = 15)
+    fig.text(0.5,0.95,title,ha='center',fontsize = 18)
+    fig.tight_layout()
+    if display:
+        plt.show()
+    #fig.savefig(path1,format='png', dpi=1200)
+    fig.savefig(path1,format='png')
+    plt.close()
+
+    fig = plt.figure(figsize = (3.5,6))
+    ax1 = fig.add_subplot(211)
+    ax1.scatter(RESULT[:,0], RESULT[:,1], marker='o',c = RGB_muns)
+    ax1.set_xlabel(LABELS[0],fontsize = 15)
+    ax1.set_ylabel(LABELS[1],fontsize = 15)
+    #ax1.set_xticks(np.arange(-0.5,0.6,0.5))
+    #ax1.set_yticks(np.arange(-0.5,0.6,0.5))
+    ax2 = fig.add_subplot(212)
+    ax2.scatter(RESULT[:,1], RESULT[:,2], marker='o',c = RGB_muns)
+    ax2.set_xlabel(LABELS[1],fontsize = 15)
+    #ax2.set_ylabel(LABELS[2],fontsize = 15)
+    ax2.set_xticks(np.arange(-0.5,0.6,0.5))
+    ax2.set_yticks(np.arange(-0.5,0.6,0.5))
+    #fig.text(0.5,0.94,title,ha='center',fontsize = 18)
+    fig.tight_layout()
+    if display:
+        plt.show()
+    #fig.savefig(path2,format='png', dpi=1200)
+    fig.savefig(path2,format='png')
+    plt.close()
+
 def scatter_MDS2(RESULT,title,path1,path2,RGB_muns, LABELS = ['DIM 1','DIM 2','DIM 3'], display = True):
     from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
     fig = plt.figure()
@@ -285,21 +321,21 @@ def display_munsells_inv(WCS_MAT, norm):
 def vis_square(data, name_fig):
     #Take an array of shape (n, height, width) or (n, height, width, 3)
        #and visualize each (height, width) thing in a grid of size approx. sqrt(n) by sqrt(n)"""
-    
+
     # normalize data for display
     data = (data - data.min()) / (data.max() - data.min())
-    
+
     # force the number of filters to be square
     n = int(np.ceil(np.sqrt(data.shape[0])))
     padding = (((0, n ** 2 - data.shape[0]),
 	       (0, 1), (0, 1))                 # add some space between filters
 	       + ((0, 0),) * (data.ndim - 3))  # don't pad the last dimension (if there is one)
     data = np.pad(data, padding, mode='constant', constant_values=1)  # pad with ones (white)
-    
+
     # tile the filters into an image
     data = data.reshape((n, n) + data.shape[1:]).transpose((0, 2, 1, 3) + tuple(range(4, data.ndim + 1)))
     data = data.reshape((n * data.shape[1], n * data.shape[3]) + data.shape[4:])
-    
+
     plt.imshow(data)
     plt.show()
     plt.imsave(name_fig,data)

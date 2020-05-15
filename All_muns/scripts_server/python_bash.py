@@ -11,7 +11,9 @@ import shlex
 
 gpu = 0
 
-load_dir = '/home/alban/project_color_constancy/PYTORCH/WCS/train_centered/All_muns/'
+load_dir = '/mnt/juggernaut/alban/project_color_constancy/PYTORCH/WCS/train_centered/All_muns/'
+
+save_dir = '/home/alban/works/color_constancy/All_muns/scripts_server/'
 
 train_sets = ['CC','D65']
 
@@ -26,8 +28,17 @@ for train_condition in train_sets:
 	    print(command)
 	    args = shlex.split(command)
 	    subprocess.call(args)'''
-	    
+'''	    
 command = "python -i Activations_readouts.py --gpu_id %i --model Original --testing_set WCS --testing_type D65 --testing_condition normal --training_set %s --load_dir %s" %(gpu, train_sets[1], load_dir)
 print(command)
 args = shlex.split(command)
-subprocess.call(args)
+subprocess.call(args)'''
+
+### Testing script
+
+for test_condition in test_conditions:
+	command = "python -i Testing_script.py --gpu_id %i --model Original --testing_set WCS --testing_type 5illu --testing_condition normal --training_set CC --load_dir %s --save_dir %s" %(gpu, load_dir, save_dir)
+	print(command)
+	args = shlex.split(command)
+	subprocess.call(args)
+

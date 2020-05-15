@@ -172,17 +172,17 @@ for m in range(nb_models):
 					img = test_addr + 'object%i_illu_%s.npy' %(muns,ILLU[10*ill*exp])
 				out_c1[m,muns, ill, exp], pc1[m, muns, ill, exp] = DLtest.evaluation_Readouts(net, img, Readout_nets[0], 'conv1', args.testing_condition, 'npy')
 				out_c2[m,muns, ill, exp], pc2[m, muns, ill, exp] = DLtest.evaluation_Readouts(net, img, Readout_nets[1], 'conv2', args.testing_condition, 'npy')
-				out_c3[m,muns, ill, exp], pc3[m, muns, ill, exp] = DLtest.evaluation_Readouts(net, img, Readout_nets[2], 'conv3',args.testing_condition, 'npy')
-				out_fc1[m,muns, ill, exp], pfc1[m, muns, ill, exp] = DLtest.evaluation_Readouts(net, img, Readout_nets[3], 'fc1',args.testing_condition,  'npy')
-				out_fc2[m,muns, ill, exp], pfc2[m, muns, ill, exp] = DLtest.evaluation_Readouts(net, img, Readout_nets[4], 'fc2',args.testing_condition, 'npy')
+				out_c3[m,muns, ill, exp], pc3[m, muns, ill, exp] = DLtest.evaluation_Readouts(net, img, Readout_nets[2], 'conv3', args.testing_condition, 'npy')
+				out_fc1[m,muns, ill, exp], pfc1[m, muns, ill, exp] = DLtest.evaluation_Readouts(net, img, Readout_nets[3], 'fc1', args.testing_condition,  'npy')
+				out_fc2[m,muns, ill, exp], pfc2[m, muns, ill, exp] = DLtest.evaluation_Readouts(net, img, Readout_nets[4], 'fc2', args.testing_condition, 'npy')
 	for munsell in range(nb_obj):
 		EVAL[m,munsell] = DLtest.evaluation(pfc2[m,munsell],list_WCS_labels[munsell])
 	print('Result = %d' %np.mean(EVAL[m]))
 
 
-np.save(DIR_LOAD +'outs/out_c1_%s_%s_%s_%s_%s.npy'%(args.model, args.training_set, args.testing_type, args.testing_set, args.testing_condition),out_c1)
-np.save(DIR_LOAD +'outs/out_c2_%s_%s_%s_%s_%s.npy'%(args.model, args.training_set, args.testing_type, args.testing_set, args.testing_condition),out_c2)
-np.save(DIR_LOAD +'outs/out_c3_%s_%s_%s_%s_%s.npy'%(args.model, args.training_set, args.testing_type, args.testing_set, args.testing_condition),out_c3)
-np.save(DIR_LOAD +'outs/out_fc1_%s_%s_%s_%s_%s.npy'%(args.model, args.training_set, args.testing_type, args.testing_set, args.testing_condition),out_fc1)
-np.save(DIR_LOAD +'outs/out_fc2_%s_%s_%s_%s_%s.npy'%(args.model, args.training_set, args.testing_type, args.testing_set, args.testing_condition),out_fc2)
+np.save(DIR_LOAD +'outs/out_c1_%s_%s_%s_%s_%s.npy'%(args.model, args.training_set, args.testing_type, args.testing_set, args.testing_condition), out_c1)
+np.save(DIR_LOAD +'outs/out_c2_%s_%s_%s_%s_%s.npy'%(args.model, args.training_set, args.testing_type, args.testing_set, args.testing_condition), out_c2)
+np.save(DIR_LOAD +'outs/out_c3_%s_%s_%s_%s_%s.npy'%(args.model, args.training_set, args.testing_type, args.testing_set, args.testing_condition), out_c3)
+np.save(DIR_LOAD +'outs/out_fc1_%s_%s_%s_%s_%s.npy'%(args.model, args.training_set, args.testing_type, args.testing_set, args.testing_condition), out_fc1)
+np.save(DIR_LOAD +'outs/out_fc2_%s_%s_%s_%s_%s.npy'%(args.model, args.training_set, args.testing_type, args.testing_set, args.testing_condition), out_fc2)
 

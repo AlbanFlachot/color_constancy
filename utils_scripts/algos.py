@@ -245,3 +245,57 @@ def procrustes(X, Y, scaling=True, reflection='best'):
     tform = {'rotation':T, 'scale':b, 'translation':c}
 
     return d, Z, tform
+
+def save_pickle(path, dict):
+    import pickle
+    f = open(path,"wb")
+    pickle.dump(dict,f)
+    f.close()
+
+def load_pickle(path):
+    import pickle
+    f = open(path,"rb")
+    return pickle.load(f)
+
+def from330to8x40(X):
+    '''
+    Function to convert from array with one munsell dimension of 330 to an array with 2 dimensions (10,41),
+    corresponding to the WCS coordinates
+    Parameters:
+        - X: array of shape = [...,330,...]
+    Returns:
+        - WCS_MAT: array of shape = [...,10,41,...] foolowing the WCS coordinates
+    '''
+
+    # List of WCS coordinates
+    L = list()
+    with open(txt_dir_path +"WCS_indx.txt") as f:
+        for line in f:
+           L.append(line.split())
+
+    WCS_X = [ord(char[0][0].lower()) - 97 for char in L]
+    WCS_Y = [int(char[0][1:]) for char in L]
+
+    # identification of dim with size 330
+    idx = np.array(X).shape.index(330)
+    # move this dim to the first
+    X = np.moveaxis(X,idx,0)
+    # initialization of new array
+    WCS_MAT = np.zeros(tuple([10,41]) + X.shape[1:])
+    count = 0
+    for i in range(330):
+        WCS_MAT[WCS_X[i],WCS_Y[i]] = X[count].astype(float)
+        count +=1
+    return np.moveaxis(WCS_MAT,(0,1),(idx,idx+1)) # move dimensions in the right order
+
+
+def load_layer(path):
+	import glob
+	addrs = sorted(glob.glob(path + '/*.pickle'))
+	LAYER = list()
+	for addr in addrs:
+		pickle_in = open(addr,'rb')
+		layer = pickle.load(pickle_in)
+		pickle_in.close()
+		LAYER.extend(layer)
+	return np.array(LAYER)

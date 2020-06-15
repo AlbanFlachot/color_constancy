@@ -242,7 +242,7 @@ def display_munsells(WCS_MAT, norm):
         fig.tight_layout
         plt.show()
 
-def display_munsells_inv(WCS_MAT, norm):
+def display_munsells_inv(WCS_MAT, norm, title,save = True, add = 'a'):
     '''
     Function that displays the results per munsell and displaying themn according to the WCS coordinates
     8*40 colored munsells + 10 achromatic munsells.
@@ -292,6 +292,7 @@ def display_munsells_inv(WCS_MAT, norm):
             im_chro = WCS_MAT_chro
             im_achro = WCS_MAT_achro
         axchro.imshow(im_chro)
+        axchro.set_title(title, fontsize = 15)
         axchro.xaxis.set_major_locator(ticker.MultipleLocator(4))
         majors = ["","R", "YR", 'Y', 'GY', 'G', 'BG', 'B', 'PB', 'P', 'RP']
         axchro.xaxis.set_major_formatter(ticker.FixedFormatter(majors))
@@ -307,12 +308,14 @@ def display_munsells_inv(WCS_MAT, norm):
 
         axchro.set_ylabel('Value',fontsize = 15)
         axchro.set_xlabel('Hue',fontsize = 15)
+
         plt.setp(axchro.get_xticklabels(), fontsize=14)
         plt.setp(axchro.get_yticklabels(), fontsize=14)
         plt.setp(axachro.get_yticklabels(), fontsize=14)
         fig.tight_layout
         plt.show()
-        fig.savefig('WCS_munsell.png',dpi = 300)
+        if save:
+            fig.savefig(add,dpi = 300)
 
 
         #import pdb; pdb.set_trace()

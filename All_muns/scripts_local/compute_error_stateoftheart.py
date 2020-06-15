@@ -1,10 +1,13 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
-Created on Tue Mar  3 11:29:59 2020
+Created on Thu Jun  4 17:58:48 2020
 
 @author: alban
+
+Scripts to compute errors for state of the art
 """
+
 
 
 # In[1]:
@@ -71,16 +74,6 @@ args = parser.parse_args()
 # In[2]:
 
 
-def load_layer(path):
-	import glob
-	addrs = sorted(glob.glob(path + '/*.pickle'))
-	LAYER = list()
-	for addr in addrs:
-		pickle_in = open(addr,'rb')
-		layer = pickle.load(pickle_in)
-		pickle_in.close()
-		LAYER.extend(layer)
-	return np.array(LAYER)
 
 # In[9]: path to files
 
@@ -124,7 +117,7 @@ def LoadandComputeOutputs(path2activations, NetType, training_set, Testing_type,
     return OUT_soft
 
 
-def computeErrors(path2activations, NetType, training_set, Testing_type, testing_set, layer, testing_condition, dim = '3D', space = 'CIELab'):
+def computeErrors(path2activations, NetType, training_set, Testing_type, testing_set, layer, testing_condition, dim = '3D', space = 'CIELab', order = 'alpha'):
     '''
     Function that loads previously saved outputs and computes the softmax. Different cases for different models.
     Then computes DE error of the predictions from weighted average of the outputs
@@ -136,29 +129,36 @@ def computeErrors(path2activations, NetType, training_set, Testing_type, testing
     OUTPUTS:
         - DE: Delta E error.
     '''
-
+    OUTS = np.genfromtxt(path2activations + NetType + '/' + NetType + '_original_0.csv', delimiter=',').astype('int')
+    OUTS = OUTS.reshape(1,330,4,-1,4)
     list_WCS_labels = algos.compute_WCS_Munsells_categories() # import idxes of WCS munsells among the 1600
 
-    OUT_soft = LoadandComputeOutputs(path2activations, NetType, training_set, Testing_type, testing_set, layer, testing_condition) # Load output of last layer
+    muns_alpha2num = sorted(range(1600), key = str)
+    muns_num2alpha = [muns_alpha2num.index(l) for l in range(1600)] # labels of muns in alpha order
 
+    WCS_num2alpha = [sorted(range(1600), key = str).index(l) for l in list_WCS_labels] # labels of WCS in alpha order
+    WCS_alpha2num = [OUTS[0,:,0,0,-1].tolist().index(i) for i in WCS_num2alpha] # indx of WCS in alpha order
+
+
+    OUTS = OUTS[:,WCS_alpha2num]
 
     # Compute Delta E ------------------------------------------------------------------------------------
-    DE = EM.WEIGHTED_PREDICTION_LAB(OUT_soft, test_WCS = (testing_set =='WCS'), space = 'CIELab')
-    DE_3D = EM.PREDICTION_3D(OUT_soft.argmax(axis = -1), test_WCS = (testing_set =='WCS'), space = 'Munsell')
+    DE = EM.PREDICTION_LAB(OUTS[:,:,:,:,2], test_WCS = (testing_set =='WCS'), space = 'CIELab', order = 'alpha')
+    DE_3D = EM.PREDICTION_3D(OUTS[:,:,:,:,2], test_WCS = (testing_set =='WCS'), space = 'Munsell')
     DE_3D = EM.error_muns(DE_3D)
 
     # Compute Accuracy ------------------------------------------------------------------------------------
-    nb_mod = OUT_soft.shape[0]
-    nb_obj = OUT_soft.shape[1]
-    nb_illu = OUT_soft.shape[2]
+    nb_mod = OUTS.shape[0]
+    nb_obj = OUTS.shape[1]
+    nb_illu = OUTS.shape[2]
     Eval = np.zeros((nb_mod, nb_obj, nb_illu))
     Eval5 = np.zeros((nb_mod, nb_obj, nb_illu))
     Accu_munscube = np.zeros((nb_mod, nb_obj, nb_illu))
     for mod in range(nb_mod):
         for muns in range(nb_obj):
             for illu in range(nb_illu):
-                Eval[mod,muns,illu] = EM.evaluation(np.argmax(OUT_soft[mod,muns,illu], axis=-1), list_WCS_labels[muns])
-                Eval5[mod, muns, illu] = EM.evaluation5(np.argsort(OUT_soft[mod,muns,illu], axis=-1)[:,-5:], list_WCS_labels[muns])
+                Eval[mod,muns,illu] = 100*OUTS[mod, muns, illu,:,0].sum()/OUTS[mod, muns, illu,:,0].size
+                Eval5[mod, muns, illu] = 100*OUTS[mod, muns, illu,:,1].sum()/OUTS[mod, muns, illu,:,1].size
                 Accu_munscube[mod, muns, illu] =  EM.evaluation_munscube(DE_3D[mod,muns,illu])
 
     # Compute CCI ------------------------------------------------------------------------------------
@@ -172,40 +172,14 @@ def computeErrors(path2activations, NetType, training_set, Testing_type, testing
     return Eval, DE, CCI, DE_3D, Eval5, Accu_munscube
 
 
-def from330to8x40(X):
-    '''
-    Function to convert from array with one munsell dimension of 330 to an array with 2 dimensions (10,41),
-    corresponding to the WCS coordinates
-    Parameters:
-        - X: array of shape = [...,330,...]
-    Returns:
-        - WCS_MAT: array of shape = [...,10,41,...] foolowing the WCS coordinates
-    '''
 
-    # List of WCS coordinates
-    L = list()
-    with open(txt_dir_path +"WCS_indx.txt") as f:
-        for line in f:
-           L.append(line.split())
-
-    WCS_X = [ord(char[0][0].lower()) - 97 for char in L]
-    WCS_Y = [int(char[0][1:]) for char in L]
-
-    # identification of dim with size 330
-    idx = np.array(X).shape.index(330)
-    # move this dim to the first
-    X = np.moveaxis(X,idx,0)
-    # initialization of new array
-    WCS_MAT = np.zeros(tuple([10,41]) + X.shape[1:])
-    count = 0
-    for i in range(330):
-        WCS_MAT[WCS_X[i],WCS_Y[i]] = X[count].astype(float)
-        count +=1
-    return np.moveaxis(WCS_MAT,(0,1),(idx,idx+1)) # move dimensions in the right order
 
 
 # In[9]: Initialization variables
 
+path = '/home/alban/Documents/pytorch/project_color_constancy/WCS_Xp/git/color_constancy/csv_files/'
+
+OUTS = np.genfromtxt('/home/alban/Documents/pytorch/project_color_constancy/WCS_Xp/git/color_constancy/csv_files/alban_net/alban_net_original_0.csv', delimiter=',').astype('int')
 
 NetType = args.NetType
 
@@ -221,28 +195,11 @@ path2activations = args.path2activations
 
 #Accu, DE, CCI = computeErrors(path2activations, NetType, args.training_set, Testing_type, args.testing_set, args.layer, args.testing_condition)
 
-def save_pickle(path, dict):
-    import pickle
-    f = open(path,"wb")
-    pickle.dump(dict,f)
-    f.close()
 
-def load_pickle(path):
-    import pickle
-    f = open(path,"rb")
-    return pickle.load(f)
-
-if not os.path.exists('../pickles'):
-    os.mkdir('../pickles')
 
 #save_pickle('../pickles/Errors_%s_%s_%s_%s_%s_%s.pickle'%(NetType, args.training_set, Testing_type, Testing_set, args.layer, args.testing_condition), {'Accu': Accu, 'DE': DE, 'CCI': CCI})
 
 
 # In[9]: Compute errors Munsells
 
-Accu, DE, CCI, DE_3D, Accu5, Accu_munscube = computeErrors(path2activations, NetType, args.training_set, Testing_type, args.testing_set, args.layer, args.testing_condition)
-
-if not os.path.exists('../pickles'):
-    os.mkdir('../pickles')
-
-save_pickle('../pickles/Errors_%s_%s_%s_%s_%s_%s.pickle'%(NetType, args.training_set, Testing_type, Testing_set, args.layer, args.testing_condition), {'Accu': Accu, 'DE': DE, 'CCI': CCI, 'DE_3D': DE_3D, 'Accu5': Accu5, 'Accu_munscube': Accu_munscube})
+Accu, DE, CCI, DE_3D, Accu5, Accu_munscube = computeErrors(path, 'alban_net', 'CC', '4illu', 'WCS', 'fc2', 'normal')

@@ -17,11 +17,13 @@ warnings.filterwarnings("ignore")
 
 import sys
 sys.path.append('../../')
-
+sys.path.append('/home/alban/DATA/MODELS/')
+sys.path.append('/home/arash/Software/repositories/kernelphysiology/python/src/')
 
 from DL_testing_functions_scripts import DL_testing_functions as DLtest
 from utils_scripts import algos
 from DL_training_functions_scripts import MODELS as M
+from kernelphysiology.dl.pytorch.models import model_utils 
 
 
 # CUDA for PyTorch
@@ -69,10 +71,16 @@ parser.add_argument('--testing_condition', default='normal', type=str, metavar='
 
 parser.add_argument('--model', default='Ref', type=str, metavar='str',
                     help='to distiguish between the different models')
+                    
+parser.add_argument('--focus', default='Munsells', type=str, metavar='str',
+                    help='to distiguish between the different models')
 
 args = parser.parse_args()
 
-nb_models = 10
+if args.model == 'Original':
+	nb_models = 10
+else:
+	nb_models = 1
 
 if args.testing_set == 'WCS':
     nb_obj = 330
@@ -93,6 +101,10 @@ elif args.testing_type == 'var':
 elif args.testing_type == 'D65':
     nb_illu = 1
     nb_ex = 28
+
+elif args.testing_type == 'D65_masks':
+    nb_illu = 1
+    nb_ex = 20
 
 
 ## Xp set
@@ -116,12 +128,12 @@ with open("/mnt/juggernaut/alban/project_color_constancy/PYTORCH/WCS/train_cente
         val_im_empty_scenes = pickle.load(fp)
 
 
-
-conv1 = np.zeros((nb_models,nb_obj,nb_illu,nb_ex, 16))
-conv2 = np.zeros((nb_models,nb_obj,nb_illu,nb_ex, 32))
-conv3 = np.zeros((nb_models,nb_obj,nb_illu,nb_ex, 64))
-fc1 = np.zeros((nb_models,nb_obj,nb_illu,nb_ex, 250))
-fc2 = np.zeros((nb_models,nb_obj,nb_illu,nb_ex, 250))
+if args.model == 'Original':
+	conv1 = np.zeros((nb_models,nb_obj,nb_illu,nb_ex, 16))
+	conv2 = np.zeros((nb_models,nb_obj,nb_illu,nb_ex, 32))
+	conv3 = np.zeros((nb_models,nb_obj,nb_illu,nb_ex, 64))
+	fc1 = np.zeros((nb_models,nb_obj,nb_illu,nb_ex, 250))
+	fc2 = np.zeros((nb_models,nb_obj,nb_illu,nb_ex, 250))
 out = np.zeros((nb_models,nb_obj,nb_illu,nb_ex, 1600))
 predictions = np.zeros((nb_models,nb_obj,nb_illu,nb_ex))
 EVAL = np.zeros((nb_models,nb_obj,nb_illu))
@@ -130,6 +142,19 @@ if args.model == 'Ref':
 	net = M.Ref()
 elif args.model == 'Original':
     net = M.Net2_4ter_norm()
+elif args.model == 'MobileNet':
+	net, tgsize = model_utils.which_network_classification('/home/alban/DATA/MODELS/wcs_lms_1600/mobilenet_v2/sgd/scratch/original/checkpoint.pth.tar', 1600)
+elif args.model == 'AlbanNet':
+	net, tgsize = model_utils.which_network_classification('/home/alban/DATA/MODELS/wcs_lms_1600/alban_net/sgd/scratch/original/checkpoint.pth.tar', 1600)
+elif args.model == 'VGG11_bn':
+	net, tgsize = model_utils.which_network_classification('/home/alban/DATA/MODELS/wcs_lms_1600/vgg11_bn/sgd/scratch/original/checkpoint.pth.tar', 1600)
+elif args.model == 'ResNet50':
+	net, tgsize = model_utils.which_network_classification('/home/alban/DATA/MODELS/wcs_lms_1600/resnet_bottleneck_custom/sgd/scratch/original_b2354_k64/checkpoint.pth.tar', 1600)
+elif args.model == 'ResNet18':
+	net, tgsize = model_utils.which_network_classification('/home/alban/DATA/MODELS/wcs_lms_1600/resnet_bottleneck_custom/sgd/scratch/original_b2222_k64/checkpoint.pth.tar', 1600)
+elif args.model == 'ResNet11':
+	net, tgsize = model_utils.which_network_classification('/home/alban/DATA/MODELS/wcs_lms_1600/resnet_bottleneck_custom/sgd/scratch/original_b1111_k64/checkpoint.pth.tar', 1600)
+
 
 if args.testing_type == '4illu':
 	test_addr = '/home/alban/project_color_constancy/TRAINING/DATA/PNG/WCS/Test_4_illu_centered/'
@@ -138,13 +163,23 @@ elif args.testing_type == 'D65':
 	test_addr = '/home/alban/project_color_constancy/TRAINING/DATA/PNG/WCS/validation_D65_centered/'
 elif args.testing_type == '5illu':
 	test_addr = '/home/alban/DATA/IM_CC/masks_5illu/'
+elif args.testing_type == 'D65_masks':
+	test_addr = '/home/alban/DATA/IM_CC/masks_D65/'
 
+
+list_WCS_labels = algos.compute_WCS_Munsells_categories() # import idxes of WCS munsells among the 1600
+muns_alpha2num = sorted(range(1600), key = str)
+muns_num2alpha = [muns_alpha2num.index(l) for l in range(1600)] # labels of muns in alpha order
+
+WCS_num2alpha = [sorted(range(1600), key = str).index(l) for l in list_WCS_labels] # labels of WCS in alpha order
+WCS_alpha2num = [muns_num2alpha[l] for l in list_WCS_labels] # indx of WCS in alpha order
 
 
 for m in range(nb_models):
 	print('Evaluation of model %i' %(m+1))
-	weights = DIR_LOAD +'INST_%s/inst_%d_%s/epoch_%i.pt' %((args.training_set,m,args.training_set,epochmax[m]))
-	net.load_state_dict(torch.load(weights))
+	if (args.model == 'Ref') | (args.model == 'Original') | (args.model == 'RefResNet'):
+		weights = DIR_LOAD +'INST_%s/inst_%d_%s/epoch_%i.pt' %((args.training_set,m,args.training_set,epochmax[m]))
+		net.load_state_dict(torch.load(weights))
 	net.to(device)
 	net.eval()
 	for muns in range(nb_obj):
@@ -154,25 +189,34 @@ for m in range(nb_models):
 					img = test_addr + 'object%i_%s_%i.npy' %(muns,chr(ill+65),exp)
 				elif args.testing_type == '5illu':
 					img = test_addr + 'object%i/object%i_illu_%s_%s.npy' %(muns, muns, list_illus[ill], exp)
+				elif args.testing_type == 'D65_masks':
+					img = test_addr + 'object%i/object%i_illu_D_65_%s.npy' %(muns,muns,exp)
 				else:
 					img = test_addr + 'object%i_illu_%s.npy' %(muns,ILLU[10*ill*exp])
-				conv1[m,muns,ill,exp], conv2[m,muns,ill,exp], conv3[m,muns,ill,exp], fc1[m,muns,ill,exp], fc2[m,muns,ill,exp], out[m,muns,ill,exp],  predictions[m,muns,ill,exp] = DLtest.retrieve_activations(net, img, val_im_empty_scenes, type = 'npy', testing = args.testing_condition)
+				if args.model == 'Original':
+					conv1[m,muns,ill,exp], conv2[m,muns,ill,exp], conv3[m,muns,ill,exp], fc1[m,muns,ill,exp], fc2[m,muns,ill,exp], out[m,muns,ill,exp],  predictions[m,muns,ill,exp] = DLtest.retrieve_activations(net, img, val_im_empty_scenes, type = 'npy', testing = args.testing_condition, focus = args.focus)
+				else:
+					out[m,muns,ill,exp],  predictions[m,muns,ill,exp] = DLtest.compute_outputs(net, img, val_im_empty_scenes, type = 'npy', testing = args.testing_condition, focus = args.focus)
 	for munsell in range(nb_obj):
-		EVAL[m,munsell] = DLtest.evaluation(predictions[m,munsell], list_WCS_labels[munsell])
+		if args.model == 'Original':
+			EVAL[m,munsell] = DLtest.evaluation(predictions[m,munsell], list_WCS_labels[munsell])
+		else:
+			EVAL[m,munsell] = DLtest.evaluation(predictions[m,munsell], WCS_alpha2num[munsell])
 	print('Result = %d' %np.mean(EVAL[m]))
 
 complement_addr = '_%s_%s_%s_%s_%s.npy'%(args.model, args.training_set, args.testing_type, args.testing_set, args.testing_condition)
 
 DIR_SAVE = args.save_dir
 
-np.save(DIR_SAVE +'layers/conv1'+ complement_addr, conv1)
-np.save(DIR_SAVE +'layers/conv2'+ complement_addr, conv2)
-np.save(DIR_SAVE +'layers/conv3'+ complement_addr, conv3)
-np.save(DIR_SAVE +'layers/fc1'+ complement_addr, fc1)
-np.save(DIR_SAVE +'layers/fc2'+ complement_addr, fc2)
-np.save(DIR_SAVE +'layers/predictions'+ complement_addr, predictions)
-np.save(DIR_SAVE +'layers/out'+ complement_addr, out)
-np.save(DIR_SAVE +'layers/evaluation'+ complement_addr, EVAL)
+if args.model == 'Original':
+	np.save(DIR_SAVE +'layers/%s/conv1'%args.focus + complement_addr, conv1)
+	np.save(DIR_SAVE +'layers/%s/conv2'%args.focus+ complement_addr, conv2)
+	np.save(DIR_SAVE +'layers/%s/conv3'%args.focus + complement_addr, conv3)
+	np.save(DIR_SAVE +'layers/%s/fc1'%args.focus + complement_addr, fc1)
+	np.save(DIR_SAVE +'layers/%s/fc2'%args.focus + complement_addr, fc2)
+np.save(DIR_SAVE +'layers/%s/predictions'%args.focus + complement_addr, predictions)
+np.save(DIR_SAVE +'layers/%s/out'%args.focus + complement_addr, out)
+np.save(DIR_SAVE +'layers/%s/evaluation'%args.focus + complement_addr, EVAL)
 
 
 

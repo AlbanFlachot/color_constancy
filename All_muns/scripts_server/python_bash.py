@@ -21,6 +21,8 @@ test_conditions = ['normal','no_patch', 'wrong_illu', 'no_back']
 
 layers = ['fc2','fc1', 'c3', 'c2', 'c1']
 
+models = ['ResNet11']
+
 '''
 for train_condition in train_sets:
 	for test_condition in test_conditions:
@@ -35,10 +37,10 @@ args = shlex.split(command)
 subprocess.call(args)'''
 
 ### Testing script
-
-for test_condition in test_conditions:
-	command = "python -i Testing_script.py --gpu_id %i --model Original --testing_set WCS --testing_type 5illu --testing_condition normal --training_set CC --load_dir %s --save_dir %s" %(gpu, load_dir, save_dir)
-	print(command)
-	args = shlex.split(command)
-	subprocess.call(args)
+for model in models:
+	for condition in test_conditions[:2]:
+		    command = "python Testing_script.py --gpu_id %i --model %s --testing_set WCS --testing_type 5illu --testing_condition %s --training_set CC --load_dir %s --save_dir %s --focus all" %(gpu, model, condition, load_dir, save_dir)
+		    print(command)
+		    args = shlex.split(command)
+		    subprocess.call(args)
 

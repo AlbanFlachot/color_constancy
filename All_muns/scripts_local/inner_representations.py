@@ -33,10 +33,6 @@ figures_dir_path = '../figures/'
 
 
 root_dir = '../../'
-fct_dir = '/home/alban/Documents/pytorch/project_color_constancy/WCS_Xp/training_centered/'
-
-
-
 
 
 # In[9]: Function
@@ -85,7 +81,8 @@ inds_330 = np.load(npy_dir_path + 'WCS_muns_index.npy') # index of the 330 WCS m
 WCS_MUNS_XYValue_coord = np.load(npy_dir_path + 'MUNSELL_COORDINATES.npy') # Used for procrustes analysis
 #dis.scatter_MDS2(WCS_MUNS_XYValue_coord.T,'','figures/procrustes/WCS_Muns_Coor_3D.png','figures/procrustes/WCS_Muns_Coor_2D.png', RGB_muns)
 
-list_activation_path = '/home/alban/mnt/DATA/project_color_constancy/data/training_centered/All_muns/layers/'
+list_activation_path = '/home/alban/mnt/awesome/works/color_constancy/All_muns/scripts_servers/layers/'
+
 activations_name = '%s_Original_CC_4illu_WCS_%s.npy'
 
 MUNSELLS_LMS = np.load(npy_dir_path + 'MUNSELLS_LMS.npy')
@@ -159,17 +156,14 @@ fig.tight_layout()
 plt.show()
 
 
-
-WCS_MUNS_XYValue_coord = np.load(fct_dir + 'MUNSELL_COORDINATES.npy')
+'''
+WCS_MUNS_XYValue_coord = np.load(npy_dir_path + 'MUNSELL_COORDINATES.npy')
 
 
 disp_layer, score_procrustes, tform_procrustes = algos.procrustes( WCS_MUNS_XYValue_coord.T, result_MDS[:,:3])
 dis.scatter_MDS2(score_procrustes,'','figures/procrustes_'+layer_name +'_' + network_name + '3D.png','figures/procrustes_'+layer_name +'_' + network_name+ '2D.png', RGB_muns)
 
-print('Result procrustes is: %f' %disp_layer)
+print('Result procrustes is: %f' %disp_layer)'''
 
-'''
-Attemp at identifying the main dimensions
 
-'''
 

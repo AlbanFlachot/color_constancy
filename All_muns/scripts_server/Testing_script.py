@@ -75,10 +75,15 @@ parser.add_argument('--model', default='Ref', type=str, metavar='str',
 parser.add_argument('--focus', default='Munsells', type=str, metavar='str',
                     help='to distiguish between the different models')
 
+parser.add_argument('--layer', default='', type=str, metavar='str',
+                    help='to distiguish between the different models')
+
 args = parser.parse_args()
 
 if args.model == 'Original':
 	nb_models = 10
+elif args.model == 'RefResNet':
+	nb_models = 6
 else:
 	nb_models = 1
 
@@ -120,25 +125,16 @@ DIR_LOAD = args.load_dir
 Training_curv, epochmax = DLtest.training_curves(DIR_LOAD + 'INST_%s/'%(args.training_set),args.training_set, 90)
 
 
-epochmax[[2,-3]] = 37
+#epochmax[[2,-3]] = 37
 
 # In[9]:
 
 with open("/mnt/juggernaut/alban/project_color_constancy/PYTORCH/WCS/train_centered/WCS/ima_empty_scenes.txt", "rb") as fp:   # Unpickling
         val_im_empty_scenes = pickle.load(fp)
 
+val_im_empty_scenes = ['/mnt/juggernaut' + i[5:] for i in val_im_empty_scenes]
 
-if args.model == 'Original':
-	conv1 = np.zeros((nb_models,nb_obj,nb_illu,nb_ex, 16))
-	conv2 = np.zeros((nb_models,nb_obj,nb_illu,nb_ex, 32))
-	conv3 = np.zeros((nb_models,nb_obj,nb_illu,nb_ex, 64))
-	fc1 = np.zeros((nb_models,nb_obj,nb_illu,nb_ex, 250))
-	fc2 = np.zeros((nb_models,nb_obj,nb_illu,nb_ex, 250))
-out = np.zeros((nb_models,nb_obj,nb_illu,nb_ex, 1600))
-predictions = np.zeros((nb_models,nb_obj,nb_illu,nb_ex))
-EVAL = np.zeros((nb_models,nb_obj,nb_illu))
-
-if args.model == 'Ref':
+if args.model == 'RefConv':
 	net = M.Ref()
 elif args.model == 'Original':
     net = M.Net2_4ter_norm()
@@ -154,10 +150,12 @@ elif args.model == 'ResNet18':
 	net, tgsize = model_utils.which_network_classification('/home/alban/DATA/MODELS/wcs_lms_1600/resnet_bottleneck_custom/sgd/scratch/original_b2222_k64/checkpoint.pth.tar', 1600)
 elif args.model == 'ResNet11':
 	net, tgsize = model_utils.which_network_classification('/home/alban/DATA/MODELS/wcs_lms_1600/resnet_bottleneck_custom/sgd/scratch/original_b1111_k64/checkpoint.pth.tar', 1600)
+elif args.model == 'RefResNet':
+	path = '/home/arash/Software/repositories/kernelphysiology/python/data/nets/pytorch/wcs/wcs_lms_1600/resnet_bottleneck_custom/sgd/scratch/Ref%i_b3120_k16_b1024_e90/checkpoint.pth.tar'
 
 
 if args.testing_type == '4illu':
-	test_addr = '/home/alban/project_color_constancy/TRAINING/DATA/PNG/WCS/Test_4_illu_centered/'
+	test_addr = '/mnt/juggernaut/alban/project_color_constancy/TRAINING/DATA/PNG/WCS/Test_4_illu_centered/'
 elif args.testing_type == 'D65':
 	ILLU = np.load(npy_dir_path + 'ILLU.npy')
 	test_addr = '/home/alban/project_color_constancy/TRAINING/DATA/PNG/WCS/validation_D65_centered/'
@@ -165,6 +163,31 @@ elif args.testing_type == '5illu':
 	test_addr = '/home/alban/DATA/IM_CC/masks_5illu/'
 elif args.testing_type == 'D65_masks':
 	test_addr = '/home/alban/DATA/IM_CC/masks_D65/'
+
+# name of layers for RefResNet
+layer_names = ['layer1.2.conv3.weight','layer2.0.conv3.weight','layer3.1.conv3.weight']
+
+if args.model == 'Original':
+	conv1 = np.zeros((nb_models,nb_obj,nb_illu,nb_ex, 16))
+	conv2 = np.zeros((nb_models,nb_obj,nb_illu,nb_ex, 32))
+	conv3 = np.zeros((nb_models,nb_obj,nb_illu,nb_ex, 64))
+	fc1 = np.zeros((nb_models,nb_obj,nb_illu,nb_ex, 250))
+	fc2 = np.zeros((nb_models,nb_obj,nb_illu,nb_ex, 250))
+
+shape_out = tuple([1600])
+if (args.model == 'RefResNet') & (len(args.layer) > 0):
+	net, tgsize = model_utils.which_network_classification(path%0, 1600)
+	net = model_utils.LayerActivation(net, layer_names[int(args.layer[-1]) -1])
+	x, _ = DLtest.transform(val_im_empty_scenes[0], val_im_empty_scenes, preprocessing = 'arash')
+	net.to(device)
+	net.eval()
+	output = net(x)
+	shape_out = output[0].cpu().detach().numpy().shape
+out = np.zeros((nb_models,nb_obj,nb_illu,nb_ex) + tuple([shape_out[0]]))
+predictions = np.zeros((nb_models,nb_obj,nb_illu,nb_ex))
+EVAL = np.zeros((nb_models,nb_obj,nb_illu))
+
+
 
 
 list_WCS_labels = algos.compute_WCS_Munsells_categories() # import idxes of WCS munsells among the 1600
@@ -175,11 +198,17 @@ WCS_num2alpha = [sorted(range(1600), key = str).index(l) for l in list_WCS_label
 WCS_alpha2num = [muns_num2alpha[l] for l in list_WCS_labels] # indx of WCS in alpha order
 
 
+
+
 for m in range(nb_models):
 	print('Evaluation of model %i' %(m+1))
-	if (args.model == 'Ref') | (args.model == 'Original') | (args.model == 'RefResNet'):
+	if (args.model == 'RefConv') | (args.model == 'Original'):
 		weights = DIR_LOAD +'INST_%s/inst_%d_%s/epoch_%i.pt' %((args.training_set,m,args.training_set,epochmax[m]))
 		net.load_state_dict(torch.load(weights))
+	elif args.model == 'RefResNet':
+		net, tgsize = model_utils.which_network_classification(path%m, 1600)
+		if len(args.layer) > 0:
+                        net = model_utils.LayerActivation(net, layer_names[int(args.layer[-1]) -1])
 	net.to(device)
 	net.eval()
 	for muns in range(nb_obj):
@@ -196,7 +225,7 @@ for m in range(nb_models):
 				if args.model == 'Original':
 					conv1[m,muns,ill,exp], conv2[m,muns,ill,exp], conv3[m,muns,ill,exp], fc1[m,muns,ill,exp], fc2[m,muns,ill,exp], out[m,muns,ill,exp],  predictions[m,muns,ill,exp] = DLtest.retrieve_activations(net, img, val_im_empty_scenes, type = 'npy', testing = args.testing_condition, focus = args.focus)
 				else:
-					out[m,muns,ill,exp],  predictions[m,muns,ill,exp] = DLtest.compute_outputs(net, img, val_im_empty_scenes, type = 'npy', testing = args.testing_condition, focus = args.focus)
+					out[m,muns,ill,exp],  predictions[m,muns,ill,exp] = DLtest.compute_outputs(net, img, val_im_empty_scenes, type = 'npy', testing = args.testing_condition, focus = args.focus, prep = 'arash', layer = args.layer)				        
 	for munsell in range(nb_obj):
 		if args.model == 'Original':
 			EVAL[m,munsell] = DLtest.evaluation(predictions[m,munsell], list_WCS_labels[munsell])
@@ -214,9 +243,9 @@ if args.model == 'Original':
 	np.save(DIR_SAVE +'layers/%s/conv3'%args.focus + complement_addr, conv3)
 	np.save(DIR_SAVE +'layers/%s/fc1'%args.focus + complement_addr, fc1)
 	np.save(DIR_SAVE +'layers/%s/fc2'%args.focus + complement_addr, fc2)
-np.save(DIR_SAVE +'layers/%s/predictions'%args.focus + complement_addr, predictions)
-np.save(DIR_SAVE +'layers/%s/out'%args.focus + complement_addr, out)
-np.save(DIR_SAVE +'layers/%s/evaluation'%args.focus + complement_addr, EVAL)
+#np.save(DIR_SAVE +'layers/%s/predictions'%args.focus + complement_addr, predictions)
+np.save(DIR_SAVE +'outs/out' + args.layer + complement_addr, out)
+#np.save(DIR_SAVE +'layers/%s/evaluation'%args.focus + complement_addr, EVAL)
 
 
 

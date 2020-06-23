@@ -1,11 +1,12 @@
 import numpy as np
 import torch
 import cv2
+from random import randint
 
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if use_cuda else "cpu")
 
-def transform(img,testing = 'normal', type = 'npy'):
+def transform(img, val_im_empty_scenes, testing = 'normal', type = 'npy', preprocessing='alban'):
 	if type == 'png':
 		I = np.array(io.imread(img)).astype(float)
 		if np.amax(I) > 2:
@@ -18,10 +19,13 @@ def transform(img,testing = 'normal', type = 'npy'):
 		x = x.type(torch.FloatTensor)
 	elif type == 'npy':
 		I = np.load(img).astype(float)
-		I_mask = np.load(img[:-4] + '_mask.npy')
-		MASK = np.mean(I_mask, axis = -1)
-		MASK[MASK > np.amax(MASK)/255] = 1
-		MASK[MASK != 1] = 0
+		if (testing == 'wrong_illu') | (testing == 'no_back'):
+			I_mask = np.load(img[:-4] + '_mask.npy')
+			MASK = np.mean(I_mask, axis = -1)
+			MASK[MASK > np.amax(MASK)/255] = 1
+			MASK[MASK != 1] = 0
+		else:
+			MASK = 0
 		if testing == 'no_patch':
 			trans_im = I.copy()
 			local_mean = np.mean(trans_im[0:8,27:100],axis = (0))
@@ -30,13 +34,25 @@ def transform(img,testing = 'normal', type = 'npy'):
 			lum_noise = np.random.normal(0,local_std/10,(11,73))
 			trans_im[8:19,27:100] = band+ np.tile(lum_noise[:,:,np.newaxis],(1,1,3))
 			I = trans_im.copy()
-		elif testing == 'wrong_illu':  
+		elif testing == 'wrong_illu':
+			index_illu = randint(0,len(val_im_empty_scenes)-1)
 			scene = val_im_empty_scenes[index_illu]
 			SCENE = np.load(scene)                     
 			SCENE[MASK==1] = I[MASK==1]         
 			I = SCENE.astype(float)
-		I = np.moveaxis(I,-1,0)
-		I = I - 3
+		elif testing == 'no_back': 
+			SCENE = np.zeros(I.shape)
+			SCENE[MASK==1] = I[MASK==1]         
+			I = SCENE.astype(float)
+		if preprocessing == 'alban':
+			I = np.moveaxis(I,-1,0)
+			I = I - 3
+		elif preprocessing == 'arash':
+			mean = [0.485, 0.456, 0.406]
+			std = [0.229, 0.224, 0.225]
+			I = I/I.max()
+			I = (I - mean)/std
+			I = np.moveaxis(I,-1,0)
 		x = torch.from_numpy(I)
 		x = x.type(torch.FloatTensor)
 	else:
@@ -45,7 +61,11 @@ def transform(img,testing = 'normal', type = 'npy'):
 	x = x.to(device)
 	return x, MASK
 
+
 def receptive_field(layer, stride, window):
+        '''
+        Function that computes receptive field of a convolutional kernel
+        '''
         rf = 1
         for count in range(layer):
                 rf += np.power(2,count)*stride[count]*(window[count] - 1)
@@ -54,33 +74,50 @@ def receptive_field(layer, stride, window):
 
 def relevant_kernel_map(mask, layer, dim , stride , window , im_size):
         '''
-        Function which finds which kernel of convolutional layer are detecting colored object within scene
+        Function which finds which kernel of convolutional layer are detecting colored object within scene.
         '''
         
         rf = window[0]
         rf = receptive_field(layer, stride, window)	
-        relevance = cv2.blur(mask.astype('float32'), (rf, rf))[::np.power(2,layer-1),::np.power(2,layer-1)]
+        relevance = cv2.GaussianBlur(mask.astype('float32'), (rf, rf),0)[::np.power(2,layer-1),::np.power(2,layer-1)]
         ind = (relevance.shape[0] - dim[layer-1])//2
         relevance = relevance[ind:dim[layer-1]+ind,ind:dim[layer-1]+ind]
         return np.where(relevance > 0.33)
 
 
 
-def retrieve_activations(net,img, val_im_empty_scenes, testing = 'normal', type = 'npy'):
-	x, mask = transform(img,testing, type)
+def retrieve_activations(net,img, val_im_empty_scenes, testing = 'normal', type = 'npy', focus = 'Munsells', prep = 'alban'):
+	x, mask = transform(img,testing, type, preprocessing = prep)
 	outputs = net(x)
 	# Update: values here are for Original net
-	relevant_conv1 = relevant_kernel_map(mask, 1, np.array([126,61,28]),np.array([1,1,1]), [5,3,3], 128)*1
-	relevant_conv2 = relevant_kernel_map(mask, 2, np.array([126,61,28]),np.array([1,1,1]), [5,3,3], 128)*1
-	relevant_conv3 = relevant_kernel_map(mask, 3, np.array([126,61,28]),np.array([1,1,1]), [5,3,3], 128)*1
-	conv1 = np.mean(outputs['conv1'].cpu().detach().numpy()[:,:,relevant_conv1[0],relevant_conv1[1]],axis = -1)
-	conv2 = np.mean(outputs['conv2'].cpu().detach().numpy()[:,:,relevant_conv2[0],relevant_conv2[1]],axis = -1)
-	conv3 = np.mean(outputs['conv3'].cpu().detach().numpy()[:,:,relevant_conv3[0],relevant_conv3[1]],axis = -1)
+	if focus == 'Munsells':
+	        relevant_conv1 = relevant_kernel_map(mask, 1, np.array([126,61,28]),np.array([1,1,1]), [5,3,3], 128)*1
+	        relevant_conv2 = relevant_kernel_map(mask, 2, np.array([126,61,28]),np.array([1,1,1]), [5,3,3], 128)*1
+	        relevant_conv3 = relevant_kernel_map(mask, 3, np.array([126,61,28]),np.array([1,1,1]), [5,3,3], 128)*1
+	        conv1 = np.amax(outputs['conv1'].cpu().detach().numpy()[:,:,relevant_conv1[0],relevant_conv1[1]],axis = -1)
+	        conv2 = np.amax(outputs['conv2'].cpu().detach().numpy()[:,:,relevant_conv2[0],relevant_conv2[1]],axis = -1)
+	        conv3 = np.amax(outputs['conv3'].cpu().detach().numpy()[:,:,relevant_conv3[0],relevant_conv3[1]],axis = -1)
+	else:
+		conv1 = np.amax(outputs['conv1'].cpu().detach().numpy(),axis = (2,-1))
+		conv2 = np.amax(outputs['conv2'].cpu().detach().numpy(),axis = (2,-1))
+		conv3 = np.amax(outputs['conv3'].cpu().detach().numpy(),axis = (2,-1))
 	fc1 = outputs['fc1'].cpu().detach().numpy()
 	fc2 = outputs['fc2'].cpu().detach().numpy()
 	_, p = torch.max(outputs['out'].data, 1)
 	out = outputs['out'].cpu().detach().numpy()
 	return conv1[0],conv2[0],conv3[0],fc1[0],fc2[0], out[0], (p.cpu().detach().numpy())[0]
+
+
+def compute_outputs(net,img, val_im_empty_scenes, testing = 'normal', type = 'npy', focus = 'Munsells', prep = 'alban', layer = ''):
+	x, mask = transform(img, val_im_empty_scenes,testing, type, preprocessing = prep)
+	outputs = net(x)
+	if len(layer) >0:
+	        out = np.amax(outputs[0].cpu().detach().numpy(),axis = (1,2))
+	else:
+	        out = outputs[0].cpu().detach().numpy()
+	return out, np.argmax(out)
+
+
 
 def evaluation_Readouts(net,img,readout_net,layer = 'fc2',testing = 'normal',type='npy'):
 	x, _ = transform(img,testing, type)

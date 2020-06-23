@@ -90,3 +90,24 @@ def cart2sph(x,y,z):
 	elev = np.arctan(z/np.sqrt(XsqPlusYsq)) # theta
 	az = np.arctan2(y,x) # phi
 	return np.array([r, az, elev])
+
+def VXY2VHC(VXY, muns = 'True'):
+    '''
+    Fuction that converts Munsell representation from cardinal (Value X, Y) to cylindrical (Value, Hue, Chroma)
+    '''
+
+    shape = VXY.shape
+    if shape == 3:
+        VXY = VXY.reshape(1,3)
+    else:
+        VXY = VXY.reshape(-1,3)
+
+    VHC = VXY.copy()
+    VHC[:,-1] = np.linalg.norm(VXY[:,1:], axis = -1)
+    #import dbg; dbg.set_trace()
+    VHC[:,1] = (np.arccos(VXY[:,1]/VHC[:,-1])*np.sign(VXY[:,2]))
+    VHC[VHC[:,-1] == 0,1] = 0
+    if muns:
+        VHC[:,1] = VHC[:,1]*180/np.pi/4.5
+    VHC = VHC.reshape(shape)
+    return VHC

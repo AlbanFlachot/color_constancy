@@ -133,7 +133,7 @@ with open(txt_dir_path +"WCS_chroma.txt") as f:
 
 
 WCS_MAT_CHROMA = from330to8x40(CHROMA)
-dis.display_munsells_inv(WCS_MAT_CHROMA,16)
+dis.display_munsells_inv(WCS_MAT_CHROMA,16,'WCS Chroma')
 
 
 mat_speakers = sio.loadmat(npy_dir_path +'matrix_WCS_speakers.mat')['WCS_speakers']
@@ -163,7 +163,7 @@ WCS_MAT_RGB =from330to8x40(RGB_muns)
 WCS_MAT_sRGB = (WCS_MAT_RGB - np.amin(WCS_MAT_RGB))/(np.amax(WCS_MAT_RGB)-np.amin(WCS_MAT_RGB))
 RGB_muns = (RGB_muns - np.amin(RGB_muns))/(np.amax(RGB_muns)-np.amin(RGB_muns))
 
-dis.display_munsells_inv(WCS_MAT_sRGB,1)
+dis.display_munsells_inv(WCS_MAT_sRGB,1,'WCS Munsells')
 
 
 nb_mod = ERRORS[layers[0]][conditions[0]]['DE'].shape[0]
@@ -202,26 +202,56 @@ normalized_DELTAE[np.mean(DE_MAT, axis = 0) == 0] = 0
 
 Accu_MAT = from330to8x40(ERRORS[layers[0]][conditions[0]]['Accu'])
 
-dis.display_munsells_inv(np.mean(Accu_MAT,axis = (0,-1)), np.amax(np.mean(Accu_MAT,axis = (0,-1))))
-dis.display_munsells_inv(np.mean(DE_MAT,axis = 0), np.amax(np.mean(DE_MAT,axis = 0)))
-dis.display_munsells_inv(np.mean(DE_MAT_D65,axis = 0), np.amax(np.mean(DE_MAT_D65,axis = 0)))
-dis.display_munsells_inv(DE_MAT[0], np.amax(DE_MAT[0]))
-dis.display_munsells_inv(DIST_neighbours_MAT, np.amax(DIST_neighbours_MAT))
-dis.display_munsells_inv(normalized_DELTAE,np.amax(normalized_DELTAE))
+dis.display_munsells_inv(np.mean(Accu_MAT,axis = (0,-1)), np.amax(np.mean(Accu_MAT,axis = (0,-1))), 'Accuracy')
+dis.display_munsells_inv(np.mean(DE_MAT,axis = 0), np.amax(np.mean(DE_MAT,axis = 0)), '$\Delta$E')
+
+DE_MAT_normal = DE_MAT
+DE_MAT_nopatch =  from330to8x40(np.mean(ERRORS[layers[0]][conditions[1]]['DE'],axis = (-1,-2)))
+DE_MAT_wrongback =  from330to8x40(np.mean(ERRORS[layers[0]][conditions[2]]['DE'],axis = (-1,-2)))
+DE_MAT_noback =  from330to8x40(np.mean(ERRORS[layers[0]][conditions[3]]['DE'],axis = (-1,-2)))
+DE_MAT_D65D65 =  from330to8x40(np.mean(ERRORS[layers[0]][conditions[-1]]['DE'],axis = (-1,-2)))
+
+dis.display_munsells_inv(np.mean(DE_MAT_normal,axis = 0), np.amax(np.mean(DE_MAT_normal,axis = 0)), '$\Delta$E$_{normal}$', save = True, add = figures_dir_path + '$\Delta$E$_{normal}$.png')
+dis.display_munsells_inv(np.mean(DE_MAT_nopatch,axis = 0), np.amax(np.mean(DE_MAT_nopatch,axis = 0)), '$\Delta$E$_{nopatch}$', save = True, add = figures_dir_path + '$\Delta$E$_{nopatch}$')
+dis.display_munsells_inv(np.mean(DE_MAT_wrongback,axis = 0), np.amax(np.mean(DE_MAT_wrongback,axis = 0)), '$\Delta$E$_{wrongback}$', save = True,add = figures_dir_path + '$\Delta$E$_{wrongback}$')
+dis.display_munsells_inv(np.mean(DE_MAT_noback,axis = 0), np.amax(np.mean(DE_MAT_noback,axis = 0)), '$\Delta$E$_{noback}$', save = True, add = figures_dir_path + '$\Delta$E$_{noback}$')
+dis.display_munsells_inv(np.mean(DE_MAT_D65D65,axis = 0), np.amax(np.mean(DE_MAT_D65D65,axis = 0)), '$\Delta$E$_{D65}$', save = True, add = figures_dir_path + '$\Delta$E$_{D65}$')
+
+CCI_MAT_normal = from330to8x40(np.mean(ERRORS[layers[0]][conditions[0]]['CCI'],axis = (1,-1)))
+CCI_MAT_nopatch =  from330to8x40(np.mean(ERRORS[layers[0]][conditions[1]]['CCI'],axis = (-1,1)))
+CCI_MAT_wrongback =  from330to8x40(np.mean(ERRORS[layers[0]][conditions[2]]['CCI'],axis = (-1,1)))
+CCI_MAT_noback =  from330to8x40(np.mean(ERRORS[layers[0]][conditions[3]]['CCI'],axis = (-1,1)))
+CCI_MAT_D65D65 =  from330to8x40(np.mean(ERRORS[layers[0]][conditions[-1]]['CCI'],axis = (-1,1)))
+
+dis.display_munsells_inv(1-np.mean(CCI_MAT_normal,axis = 0), np.amax(1-np.mean(CCI_MAT_normal,axis = 0)), 'CCI$_{normal}$',  save = True, add = figures_dir_path + 'CCI$_{normal}$.png')
+dis.display_munsells_inv(1-np.mean(CCI_MAT_nopatch,axis = 0), np.amax(1-np.mean(CCI_MAT_nopatch,axis = 0)), 'CCI$_{nopatch}$',  save = True, add = figures_dir_path + 'CCI$_{nopatch}$.png')
+dis.display_munsells_inv(1-np.mean(CCI_MAT_wrongback,axis = 0), np.amax(1-np.mean(CCI_MAT_wrongback,axis = 0)), 'CCI$_{wrongback}$',  save = True, add = figures_dir_path + 'CCI$_{wrongback}$.png')
+dis.display_munsells_inv(1-np.mean(CCI_MAT_noback,axis = 0), np.amax(1-np.mean(CCI_MAT_noback,axis = 0)), 'CCI$_{noback}$',  save = True, add = figures_dir_path + 'CCI$_{noback}$.png')
+dis.display_munsells_inv(1-np.mean(CCI_MAT_D65D65,axis = 0), np.amax(1-np.mean(CCI_MAT_D65D65,axis = 0)), 'CCI$_{D65}$',  save = True, add = figures_dir_path + 'CCI$_{D65}$.png')
+
+np.corrcoef(WCS_MAT_CHROMA[1:-1,1:].flatten(), np.mean(DE_MAT_wrongback,axis = 0)[1:-1,1:].flatten())
+np.corrcoef(WCS_MAT_CHROMA[1:-1,1:].flatten(), 1-np.mean(CCI_MAT_wrongback,axis = 0)[1:-1,1:].flatten())
+np.corrcoef(WCS_MAT_CHROMA[1:-1,1:].flatten(), np.mean(DE_MAT_noback,axis = 0)[1:-1,1:].flatten())
+np.corrcoef(WCS_MAT_CHROMA[1:-1,1:].flatten(), 1-np.mean(CCI_MAT_noback,axis = 0)[1:-1,1:].flatten())
+np.corrcoef(WCS_MAT_CHROMA[1:-1,1:].flatten(), np.mean(DE_MAT_D65D65,axis = 0)[1:-1,1:].flatten())
+dis.display_munsells_inv(np.mean(DE_MAT_D65,axis = 0), np.amax(np.mean(DE_MAT_D65,axis = 0)), '$\Delta$E$_{D65}$')
+dis.display_munsells_inv(DE_MAT[0], np.amax(DE_MAT[0]),'$\Delta$E')
+dis.display_munsells_inv(DIST_neighbours_MAT, np.amax(DIST_neighbours_MAT),'Dist Neighbours')
+#dis.display_munsells_inv(normalized_DELTAE,np.amax(normalized_DELTAE),'Normalize $\Delta$E')
 
 # Comparison with consistency
-dis.display_munsells_inv(np.std(DE_MAT,axis = 0), np.amax(np.std(DE_MAT,axis = 0)))
+dis.display_munsells_inv(np.std(DE_MAT,axis = 0), np.amax(np.std(DE_MAT,axis = 0)), 'STD $\Delta$E')
 np.corrcoef(np.std(DE_MAT,axis = 0)[1:-1].flatten(), WCS_MAT_CHROMA[1:-1].flatten())
 
 relative = np.std(DE_MAT,axis = 0)/np.mean(DE_MAT,axis = 0)
-dis.display_munsells_inv(relative, np.nanmax(relative))
+#dis.display_munsells_inv(relative, np.nanmax(relative))
 
 
 # In[9]: COLOR CONSTANCY INDEX
 
 
 CCI_MAT = from330to8x40(ERRORS[layers[0]][conditions[0]]['CCI'])
-dis.display_munsells_inv(np.mean(CCI_MAT,axis = (0,1,-1)), np.nanmax(np.mean(CCI_MAT,axis = (0,1,-1))))
+dis.display_munsells_inv(np.mean(CCI_MAT,axis = (0,1,-1)), np.nanmax(np.mean(CCI_MAT,axis = (0,1,-1))),'CCI')
 
 ### Some stats
 
@@ -456,40 +486,77 @@ predicted_errors = full_predicted_errors(WCS_LAB_4.T, MUNSELL_LAB, MUNS_LAB_4 )
 CCI_normal = np.array([np.median(ERRORS[layer]['normal']['CCI'], axis = (1,2,3)) for layer in layers[::-1]])
 DE_normal = np.array([np.mean(ERRORS[layer]['normal']['DE'], axis = (1,2,3)) for layer in layers[::-1]])
 Accu_normal = np.array([np.mean(ERRORS[layer]['normal']['Accu'], axis = (1,2)) for layer in layers[::-1]])
+Accu5_normal = np.array([np.mean(ERRORS[layer]['normal']['Accu5'], axis = (1,2)) for layer in layers[::-1]])
+Accu_munscube_normal = np.array([np.mean(ERRORS[layer]['normal']['Accu_munscube'], axis = (1,2)) for layer in layers[::-1]])
 #CCI_normal_bar = np.array([np.std(ERRORS[layer]['normal']['CCI']) for layer in layers])
 
 CCI_no_patch = np.array([np.median(ERRORS[layer]['no_patch']['CCI'], axis = (1,2,3)) for layer in layers[::-1]])
 DE_no_patch = np.array([np.mean(ERRORS[layer]['no_patch']['DE'], axis = (1,2,3)) for layer in layers[::-1]])
 Accu_no_patch = np.array([np.mean(ERRORS[layer]['no_patch']['Accu'], axis = (1,2)) for layer in layers[::-1]])
+Accu5_no_patch = np.array([np.mean(ERRORS[layer]['no_patch']['Accu5'], axis = (1,2)) for layer in layers[::-1]])
+Accu_munscube_no_patch = np.array([np.mean(ERRORS[layer]['no_patch']['Accu_munscube'], axis = (1,2)) for layer in layers[::-1]])
 #CCI_no_patch = np.load(CC_dir_path +'training_centered/All_muns/CCI_fost_weighted_no_patch_std.npy')
 
 CCI_no_back = np.array([np.median(ERRORS[layer]['no_back']['CCI'], axis = (1,2,3)) for layer in layers[::-1]])
 DE_no_back = np.array([np.mean(ERRORS[layer]['no_back']['DE'], axis = (1,2,3)) for layer in layers[::-1]])
 Accu_no_back = np.array([np.mean(ERRORS[layer]['no_back']['Accu'], axis = (1,2)) for layer in layers[::-1]])
+Accu5_no_back = np.array([np.mean(ERRORS[layer]['no_back']['Accu5'], axis = (1,2)) for layer in layers[::-1]])
+Accu_munscube_no_back = np.array([np.mean(ERRORS[layer]['no_back']['Accu_munscube'], axis = (1,2)) for layer in layers[::-1]])
 #CCI_no_back = np.load(CC_dir_path +'training_centered/WCS/finetuning/CCI_fost_weighted_no_back_std.npy')
 
 CCI_wrong_illu = np.array([np.median(ERRORS[layer]['wrong_illu']['CCI'], axis = (1,2,3)) for layer in layers[::-1]])
 DE_wrong_illu = np.array([np.mean(ERRORS[layer]['wrong_illu']['DE'], axis = (1,2,3)) for layer in layers[::-1]])
 Accu_wrong_illu = np.array([np.mean(ERRORS[layer]['wrong_illu']['Accu'], axis = (1,2)) for layer in layers[::-1]])
+Accu5_wrong_illu = np.array([np.mean(ERRORS[layer]['wrong_illu']['Accu5'], axis = (1,2)) for layer in layers[::-1]])
+Accu_munscube_wrong_illu = np.array([np.mean(ERRORS[layer]['wrong_illu']['Accu_munscube'], axis = (1,2)) for layer in layers[::-1]])
 #CCI_wrong_illu = np.load(CC_dir_path +'training_centered/All_muns/CCI_fost_weighted_wrong_illu_std.npy')
 
 CCI_D65 = np.array([np.nanmedian(ERRORS[layer]['D65']['CCI'], axis = (1,2,3)) for layer in layers[::-1]])
 DE_D65 = np.array([np.nanmean(ERRORS[layer]['D65']['DE'], axis = (1,2,3)) for layer in layers[::-1]])
 Accu_D65 = np.array([np.nanmean(ERRORS[layer]['D65']['Accu'], axis = (1,2)) for layer in layers[::-1]])
-
+#Accu5_D65 = np.array([np.nanmean(ERRORS['fc2']['D65']['Accu5'], axis = (1,2)) for layer in layers[::-1]])
+#Accu_munscube_D65 = np.array([np.mean(ERRORS['fc2']['D65']['Accu_munscube'], axis = (1,2)) for layer in layers[::-1]])
 
 fig = plt.figure(figsize = (6,6))
 ax1 = fig.add_subplot(111)
-ax1.bar([1,2,3,4,5,6],[np.mean(Accu_normal, axis = -1)[-1], np.mean(Accu_no_patch,axis = -1)[-1], np.mean(Accu_wrong_illu, axis = -1)[-1], np.mean(Accu_no_back, axis = -1)[-1], np.mean(Accu_D65, axis = -1)[-1], predicted_errors['Accu'].mean()], color = ['k',[0.4,0.7,0.8],[0.4,0.8,0.4],[0.7,0.8,0.4],[0.8,0.4,0.4],'grey'],linewidth = 6)
-ax1.set_xticks([1,2,3,4,5,6])
+ax1.bar([1,2,3,4,5],[np.mean(Accu_normal, axis = -1)[-1], np.mean(Accu_no_patch,axis = -1)[-1], np.mean(Accu_wrong_illu, axis = -1)[-1], np.mean(Accu_no_back, axis = -1)[-1], np.mean(Accu_D65, axis = -1)[-1]], color = ['k',[0.4,0.7,0.8],[0.4,0.8,0.4],[0.7,0.8,0.4],[0.8,0.4,0.4]],linewidth = 6)
+ax1.set_xticks([1,2,3,4,5])
 ax1.set_xticklabels([])
 plt.xticks(fontsize = 21)
 #plt.yticks(fontsize = 14)
 plt.yticks(np.arange(0,105,25),fontsize = 21)
-ax1.set_ylabel('Accuracy',fontsize = 25)
-ax1.set_xticklabels(['CC$_{normal}$','CC$_{no patch}$','CC$_{wrong back}$','CC$_{no back}$','D65$_{normal}$', 'naive'], rotation = 45)
+ax1.set_ylabel('top1 Accuracy',fontsize = 25)
+ax1.set_xticklabels(['CC$_{normal}$','CC$_{no patch}$','CC$_{wrong back}$','CC$_{no back}$','D65$_{normal}$'], rotation = 45)
 fig.tight_layout()
 fig.savefig(figures_dir_path + 'Accuracy.png', dpi=400)
+plt.show()
+
+fig = plt.figure(figsize = (6,6))
+ax1 = fig.add_subplot(111)
+ax1.bar([1,2,3,4,5],[np.mean(Accu5_normal, axis = -1)[-1], np.mean(Accu5_no_patch,axis = -1)[-1], np.mean(Accu5_wrong_illu, axis = -1)[-1], np.mean(Accu5_no_back, axis = -1)[-1], 6], color = ['k',[0.4,0.7,0.8],[0.4,0.8,0.4],[0.7,0.8,0.4],[0.8,0.4,0.4]],linewidth = 6)
+ax1.set_xticks([1,2,3,4,5])
+ax1.set_xticklabels([])
+plt.xticks(fontsize = 21)
+#plt.yticks(fontsize = 14)
+plt.yticks(np.arange(0,105,25),fontsize = 21)
+ax1.set_ylabel('top5 Accuracy',fontsize = 25)
+ax1.set_xticklabels(['CC$_{normal}$','CC$_{no patch}$','CC$_{wrong back}$','CC$_{no back}$','D65$_{normal}$'], rotation = 45)
+fig.tight_layout()
+fig.savefig(figures_dir_path + 'Accuracy5.png', dpi=400)
+plt.show()
+
+fig = plt.figure(figsize = (6,6))
+ax1 = fig.add_subplot(111)
+ax1.bar([1,2,3,4,5],[np.mean(Accu_munscube_normal, axis = -1)[-1], np.mean(Accu_munscube_no_patch,axis = -1)[-1], np.mean(Accu_munscube_wrong_illu, axis = -1)[-1], np.mean(Accu_munscube_no_back, axis = -1)[-1], 9], color = ['k',[0.4,0.7,0.8],[0.4,0.8,0.4],[0.7,0.8,0.4],[0.8,0.4,0.4]],linewidth = 6)
+ax1.set_xticks([1,2,3,4,5])
+ax1.set_xticklabels([])
+plt.xticks(fontsize = 21)
+#plt.yticks(fontsize = 14)
+plt.yticks(np.arange(0,105,25),fontsize = 21)
+ax1.set_ylabel('Accuracy MunsCube',fontsize = 25)
+ax1.set_xticklabels(['CC$_{normal}$','CC$_{no patch}$','CC$_{wrong back}$','CC$_{no back}$','D65$_{normal}$'], rotation = 45)
+fig.tight_layout()
+fig.savefig(figures_dir_path + 'Accuracy_munscube.png', dpi=400)
 plt.show()
 
 fig = plt.figure(figsize = (6,6))
@@ -526,23 +593,48 @@ dis.DEFINE_PLT_RC(type = 1)
 
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
+ax1.errorbar([1,2,3,4,5], np.mean(Accu5_normal, axis = -1), yerr = np.std(Accu5_normal, axis = -1),
+             color = 'k', label = 'Top5$_{normal}$')
+ax1.errorbar([1,2,3,4,5],np.mean(Accu5_no_patch, axis = -1), yerr = np.std(Accu5_no_patch, axis = -1),
+             color = [0.4,0.7,0.8], label = 'Top5$_{nopatch}$')
+ax1.set_xlabel('Readouts')
+ax1.set_xticks([1,2,3,4,5])
+ax1.set_xticklabels(['RC1','RC2','RC3','RF1','RF2'])
+ax1.set_ylabel('Top5 Accuracy')
+plt.legend()
+fig.tight_layout()
+fig.savefig(figures_dir_path + 'Accu5_readout.png', dpi=400)
+plt.show()
+
+fig = plt.figure()
+ax1 = fig.add_subplot(111)
 ax1.errorbar([1,2,3,4,5],np.mean(CCI_normal, axis = -1), yerr = np.std(CCI_normal, axis = -1),
              color = 'k', label = 'CC$_{normal}$')
 ax1.errorbar([1,2,3,4,5],np.mean(CCI_no_patch, axis = -1), yerr = np.std(CCI_no_patch, axis = -1),
              color = [0.4,0.7,0.8], label = 'CC$_{nopatch}$')
-#ax1.errorbar([1,2,3,4,5],CCI_wrong_illu +[0.01,0.01,0.01,0.01,0.01],yerr = [0,0,0,0,0],color = [0.4,0.8,0.4],linewidth = 6)
-#ax1.errorbar([1,2,3,4,5], CCI_no_back +[0,0,0,0,0],yerr = [0,0,0,0,0],color = [0.7,0.8,0.4],linewidth = 6)
-#ax1.errorbar([1,2,3,4,5], CCI_D65 + [-0.01,-0.01,-0.01,-0.01,-0.01],yerr = [0,0,0,0,0],color = [0.8,0.4,0.4],linewidth = 6)
 ax1.set_xlabel('Readouts')
 ax1.set_xticks([1,2,3,4,5])
 ax1.set_xticklabels(['RC1','RC2','RC3','RF1','RF2'])
-#plt.xticks(fontsize = 17)
-#plt.yticks(fontsize = 17)
-#plt.yticks(np.arange(-1,1.1,0.5),fontsize = 14)
 ax1.set_ylabel('Median CCI')
 plt.legend()
 fig.tight_layout()
 fig.savefig(figures_dir_path + 'CCI_fost_readout.png', dpi=400)
+plt.show()
+
+fig = plt.figure()
+ax1 = fig.add_subplot(111)
+ax1.errorbar([1,2,3,4,5], np.mean(Accu_munscube_normal, axis = -1), yerr = np.std(Accu_munscube_normal, axis = -1),
+             color = 'k', label = 'MunsCube$_{normal}$')
+ax1.errorbar([1,2,3,4,5],np.mean(Accu_munscube_no_patch, axis = -1), yerr = np.std(Accu_munscube_no_patch, axis = -1),
+             color = [0.4,0.7,0.8], label = 'MunsCube$_{nopatch}$')
+ax1.set_xlabel('Readouts')
+ax1.set_xticks([1,2,3,4,5])
+ax1.set_xticklabels(['RC1','RC2','RC3','RF1','RF2'])
+
+ax1.set_ylabel('Munscube Accuracy')
+plt.legend()
+fig.tight_layout()
+fig.savefig(figures_dir_path + 'Munscube_readout.png', dpi=400)
 plt.show()
 
 
@@ -562,3 +654,4 @@ plt.show()
 
 np.mean((CCI_normal - CCI_no_patch)/CCI_normal, axis = -1)
 (CCI_normal - CCI_no_patch)/CCI_normal
+

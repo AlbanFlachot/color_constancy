@@ -9,7 +9,7 @@ Created on Tue Mar  3 14:17:28 2020
 import subprocess
 import shlex
 
-gpu = 0
+gpu = 3
 
 load_dir = '/mnt/juggernaut/alban/project_color_constancy/PYTORCH/WCS/train_centered/All_muns/'
 
@@ -19,7 +19,9 @@ train_sets = ['CC','D65']
 
 test_conditions = ['normal','no_patch', 'wrong_illu', 'no_back']
 
-layers = ['fc2','fc1', 'c3', 'c2', 'c1']
+layers = ['_layer1','_layer2','_layer3']
+
+models = ['RefResNet','MobileNet', 'ResNet11', 'ResNet18', 'ResNet50', 'VGG11_bn']
 
 '''
 for train_condition in train_sets:
@@ -34,11 +36,24 @@ print(command)
 args = shlex.split(command)
 subprocess.call(args)'''
 
+
 ### Testing script
+for layer in layers[:1]:
+	for condition in test_conditions:
+		    command = "python Testing_script.py --gpu_id %i --model RefResNet --testing_set WCS --testing_type 5illu --testing_condition %s --training_set CC --load_dir %s --save_dir %s --focus all --layer %s" %(gpu, condition, load_dir, save_dir, layer)
+		    print(command)
+		    args = shlex.split(command)
+		    subprocess.call(args)
 
-for test_condition in test_conditions:
-	command = "python -i Testing_script.py --gpu_id %i --model Original --testing_set WCS --testing_type 5illu --testing_condition normal --training_set CC --load_dir %s --save_dir %s" %(gpu, load_dir, save_dir)
-	print(command)
-	args = shlex.split(command)
-	subprocess.call(args)
+'''
+for condition in test_conditions:
+	    command = "python Testing_script.py --gpu_id %i --model RefResNet --testing_set WCS --testing_type 5illu --testing_condition %s --training_set CC --load_dir %s --save_dir %s --focus all" %(gpu, condition, load_dir, save_dir)
+	    print(command)
+	    args = shlex.split(command)
+	    subprocess.call(args)'''
 
+'''
+command = "python  Testing_script.py --gpu_id %i --model AlbanNet --testing_set WCS --testing_type 5illu --testing_condition normal --training_set CC --load_dir %s --save_dir %s --focus all" %(gpu, load_dir, save_dir)
+print(command)
+args = shlex.split(command)'''
+subprocess.call(args)

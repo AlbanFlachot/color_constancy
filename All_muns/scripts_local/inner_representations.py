@@ -120,9 +120,15 @@ inds_330 = np.load(npy_dir_path + 'WCS_muns_index.npy') # index of the 330 WCS m
 WCS_MUNS_XYValue_coord = np.load(npy_dir_path + 'MUNSELL_COORDINATES.npy') # Used for procrustes analysis
 #dis.scatter_MDS2(WCS_MUNS_XYValue_coord.T,'','figures/procrustes/WCS_Muns_Coor_3D.png','figures/procrustes/WCS_Muns_Coor_2D.png', RGB_muns)
 
+<<<<<<< HEAD
 list_activation_path = '/home/alban/mnt/awesome/works/color_constancy/All_muns/scripts_server/layers/'
 
 activations_name = '%s_Original_CC_D65_masks_WCS_%s.npy'
+=======
+list_activation_path = '/home/alban/mnt/awesome/works/color_constancy/All_muns/scripts_servers/layers/'
+
+activations_name = '%s_Original_CC_4illu_WCS_%s.npy'
+>>>>>>> 58ea0429fe669937e6e286860e51effbfde35036
 
 MUNSELLS_LMS = np.load(npy_dir_path + 'MUNSELLS_LMS.npy')
 
@@ -227,6 +233,7 @@ fig.savefig(figures_dir_path +'affine.png', dpi=400)
 plt.show()
 
 
+<<<<<<< HEAD
 for i in [TRANSFO_LAB[layer]['normal'] for layer in layers[::-1]]:
         #print(np.round(i['rotation'],2))
         M = np.round(i['rotation'],2)
@@ -256,13 +263,20 @@ for i in [TRANSFO_LAB[layer]['normal'] for layer in layers[::-1]]:
 
 '''
 
+=======
+'''
+>>>>>>> 58ea0429fe669937e6e286860e51effbfde35036
 WCS_MUNS_XYValue_coord = np.load(npy_dir_path + 'MUNSELL_COORDINATES.npy')
 
 
 disp_layer, score_procrustes, tform_procrustes = algos.procrustes( WCS_MUNS_XYValue_coord.T, result_MDS[:,:3])
 dis.scatter_MDS2(score_procrustes,'','figures/procrustes_'+layer_name +'_' + network_name + '3D.png','figures/procrustes_'+layer_name +'_' + network_name+ '2D.png', RGB_muns)
 
-print('Result procrustes is: %f' %disp_layer)
+print('Result procrustes is: %f' %disp_layer)'''
 
+<<<<<<< HEAD
 '''
+=======
+
+>>>>>>> 58ea0429fe669937e6e286860e51effbfde35036
 

@@ -190,7 +190,7 @@ def procrustes(X, Y, scaling=True, reflection='best'):
     ssX = (X0**2.).sum()
     ssY = (Y0**2.).sum()
 
-    # centred Frobenius norm
+    # centered Frobenius norm
     normX = np.sqrt(ssX)
     normY = np.sqrt(ssY)
 
@@ -217,7 +217,7 @@ def procrustes(X, Y, scaling=True, reflection='best'):
             V[:,-1] *= -1
             s[-1] *= -1
             T = np.dot(V, U.T)
-
+    #print(s)
     traceTA = s.sum()
 
     if scaling:
@@ -225,11 +225,12 @@ def procrustes(X, Y, scaling=True, reflection='best'):
         # optimum scaling of Y
         b = traceTA * normX / normY
 
-        # standarised distance between X and b*Y*T + c
-        d = traceTA**2
-
         # transformed coords
-        Z = normX*traceTA*np.dot(Y0, T) + muX
+        Z = normY * b * np.dot(Y0, T) + muX
+        
+        # standarised distance between X and b*Y*T + c
+        d = ((X0 - np.dot(Y0, T))**2).sum()/(X0**2).sum()
+        #print ((X0**2).sum())
 
     else:
         b = 1

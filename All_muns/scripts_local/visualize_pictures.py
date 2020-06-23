@@ -13,7 +13,7 @@ import numpy as np
 import pickle
 import scipy.io as sio
 import os
-
+import cv2
 
 
 import sys
@@ -29,38 +29,74 @@ from utils_scripts import algos
 import warnings
 
 
-dir1_path = '/home/alban/mnt/awesome/alban/project_color_constancy/TRAINING/DATA/PNG/WCS/Test_4_illu_centered/'
+dir_path = '/home/alban/mnt/awesome/DATA/IM_CC/masks_5illu/'
 
-dir2_path = '/home/alban/mnt/awesome/alban/project_color_constancy/TRAINING/DATA/PNG/Test_4_illu/centered/'
-
-def visualize_npy_im(im_path):
+def visualize_npy_im(im_path, save=False, add = 'a', correction = False, coef = 0, masking =False, mask = 0):
     im = np.load(im_path)
+    if correction > 0:
+        im = im/coef
+    if masking:
+        im = im*(np.stack((mask, mask, mask), axis = 2))
     fig = plt.figure()
     ax1 = plt.subplot(111)
     ax1.imshow(im/np.amax(im))
     plt.show()
+    if save:
+        fig.savefig(add, dpi = 400)
     plt.close()
     print('Mean pix = %s' %np.array2string(np.mean(im, axis = (0,1))))
     print('Max pix = %s' %np.array2string(np.amax(im, axis = (0,1))))
     print('Std pix = %s' %np.array2string(np.std(im, axis = (0,1))))
     print('Size image = %i' %im.size)
 
+def receptive_field(layer, stride, window):
+        rf = 1
+        for count in range(layer):
+                rf += np.power(2,count)*stride[count]*(window[count] - 1)
+        return rf
 
 
-visualize_npy_im(dir1_path + 'object150_A_0.npy')
-visualize_npy_im(dir2_path + 'object150_A_0.npy')
-
-
-visualize_npy_im(dir1_path + 'object150_B_0.npy')
-visualize_npy_im(dir2_path + 'object150_B_0.npy')
-
-
-visualize_npy_im(dir1_path + 'object150_C_0.npy')
-visualize_npy_im(dir2_path + 'object150_C_0.npy')
-
-
-visualize_npy_im(dir1_path + 'object150_D_0.npy')
-visualize_npy_im(dir2_path + 'object150_D_0.npy')
+def relevant_kernel_map(mask, layer, dim , stride , window , im_size):
+        '''
+        Function which finds which kernel of convolutional layer are detecting colored object within scene
+        '''
+        
+        rf = window[0]
+        rf = receptive_field(layer, stride, window)	
+        relevance = cv2.GaussianBlur(mask.astype('float32'), (rf, rf),0)[::np.power(2,layer-1),::np.power(2,layer-1)]
+        ind = (relevance.shape[0] - dim[layer-1])//2
+        relevance = relevance[ind:dim[layer-1]+ind,ind:dim[layer-1]+ind]
+        return (relevance > 0.33)*1
 
 
 
+visualize_npy_im(dir_path + 'object150/object150_illu_B_norm_0.npy', save = True, add = '/home/alban/Dropbox/project_color_constancy/PAPER/exp_floating_object.png')
+visualize_npy_im(dir_path + 'object150/object150_illu_D_65_0.npy', save = True, add = '/home/alban/Dropbox/project_color_constancy/PAPER/exp_floating_object_D65.png')
+visualize_npy_im(dir_path + 'object150/object150_illu_D_65_0_mask.npy', save = True, add = '/home/alban/Dropbox/project_color_constancy/PAPER/exp_floating_object_mask.png')
+
+correction = np.array([0.85919557, 0.94538869, 1.19541574])
+visualize_npy_im(dir_path + 'object150/object150_illu_B_norm_0.npy', correction = True, coef = correction, save = True, add = '/home/alban/Dropbox/project_color_constancy/PAPER/exp_floating_object_corrected.png')
+
+I_mask = np.load(dir_path + 'object150/object150_illu_B_norm_0_mask.npy')
+mask = np.mean(I_mask, axis = -1)
+mask[mask > np.amax(mask)/255] = 1
+mask[mask != 1] = 0 
+visualize_npy_im(dir_path + 'object150/object150_illu_B_norm_0.npy', correction = True, coef = correction, masking = True, mask = mask, save = True, add = '/home/alban/Dropbox/project_color_constancy/PAPER/exp_floating_object_corrected_mask.png')
+
+
+
+I_mask = np.load(dir_path + 'object32_illu_D_65_1_mask.npy')
+mask = np.mean(I_mask, axis = -1)
+mask[mask > np.amax(mask)/255] = 1
+mask[mask != 1] = 0 
+
+relevant_conv1 = relevant_kernel_map(mask, 1, np.array([126,61,28]),np.array([1,1,1]), [5,3,3], 128)*1
+relevant_conv2 = relevant_kernel_map(mask, 2, np.array([126,61,28]),np.array([1,1,1]), [5,3,3], 128)*1
+relevant_conv3 = relevant_kernel_map(mask, 3, np.array([126,61,28]),np.array([1,1,1]), [5,3,3], 128)*1
+
+plt.figure()
+plt.imshow(np.stack((relevant_conv3,relevant_conv3,relevant_conv3), axis = 2)*255)
+plt.show()
+plt.close()
+
+img_test = np.load(dir_path + 'object32_illu_D_65_1.npy')

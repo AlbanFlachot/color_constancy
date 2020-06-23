@@ -50,13 +50,13 @@ nb_illu = 5
 nb_exp = 5
 nb_algos = 5
 
-im_paths2 = [('/home/alban/DATA/IM_CC'+ p[0][35:]) for p in im_paths]
+im_paths2 = [('/home/alban/DATA/IM_CC/'+ p[0][35:]) for p in im_paths]
 
 mat_classic_cc = np.load(npy_dir_path + '5_luminants.npy')
-mat_classic_cc_mat = np.empty((nb_muns,nb_illu, nb_exp, nb_algos,3))
-im_paths_mat = np.empty((nb_muns,nb_illu,nb_exp),dtype=np.object)
+mat_classic_cc_mat = np.empty((nb_test_muns,nb_illu, nb_exp, nb_algos,3))
+im_paths_mat = np.empty((nb_test_muns,nb_illu,nb_exp),dtype=np.object)
 count = 0
-for muns in range(nb_muns):
+for muns in range(nb_test_muns):
 	for illu in range(nb_illu):
 		for exp in range(nb_exp):
 			im_paths_mat[train_labels[count],illu,exp] = im_paths2[count]

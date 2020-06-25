@@ -29,7 +29,7 @@ models = ['MobileNet', 'ResNet11', 'ResNet18', 'ResNet50', 'VGG11_bn', 'RefResNe
 
 for model in models:
     for condition in conditions[:2]:
-    	command = "python compute_error.py --NetType %s --training_set CC --testing_set WCS --testing_type 4illu --testing_condition %s --path2activations /home/alban/mnt/DATA/project_color_constancy/data/training_centered/All_muns/outs/out" %(model, condition)
+    	command = "python compute_error.py --NetType %s --training_set CC --testing_set WCS --testing_type 5illu --testing_condition %s --path2activations /home/alban/mnt/DATA/project_color_constancy/data/training_centered/All_muns/outs/out" %(model, condition)
     	print(command)
     	args = shlex.split(command)
     	subprocess.call(args)

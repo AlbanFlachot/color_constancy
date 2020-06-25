@@ -108,7 +108,7 @@ def LoadandComputeOutputs(path2activations, NetType, training_set, Testing_type,
     #sequence_330 = sequence_1600[sequence_1600<330]
     #print(path2activations + '_' + layer + '_' + NetType + '_' + training_set + '_' + Testing_type + '_' + testing_set + '_' + testing_condition +'.npy')
     OUT_soft = EM.softmax(np.load(path2activations + layer + '_' + NetType + '_' + training_set + '_' + Testing_type + '_' + testing_set + '_' + testing_condition +'.npy'))
-    print(OUT_soft.shape)
+    #print(OUT_soft.shape)
     print(path2activations + layer + '_' + NetType + '_' + training_set + '_' + Testing_type + '_' + testing_set + '_' + testing_condition +'.npy')
 
     return OUT_soft
@@ -137,11 +137,15 @@ def computeErrors(path2activations, NetType, training_set, Testing_type, testing
         WCS_num2alpha = [sorted(range(1600), key = str).index(l) for l in list_WCS_labels] # labels of WCS in alpha order
         WCS_alpha2num = [muns_num2alpha[l] for l in list_WCS_labels] # indx of WCS in alpha order
         OUT_soft = OUT_soft[:,:,:,:,muns_num2alpha]
+    if  Testing_type == '5illu':
+        OUT_soft = OUT_soft[:,:,:4]
 
     # Compute Delta E ------------------------------------------------------------------------------------
     DE = EM.WEIGHTED_PREDICTION_LAB(OUT_soft, test_WCS = (testing_set =='WCS'), space = 'CIELab')
+
     DE_3D = EM.PREDICTION_3D(OUT_soft.argmax(axis = -1), test_WCS = (testing_set =='WCS'), space = 'Munsell')
     DE_3D = EM.error_muns(DE_3D)
+
 
     # Compute Accuracy ------------------------------------------------------------------------------------
     nb_mod = OUT_soft.shape[0]

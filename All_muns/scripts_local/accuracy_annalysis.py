@@ -17,7 +17,7 @@ import numpy as np
 import pickle
 import scipy.io as sio
 import os
-
+import seaborn as sns
 
 
 import sys
@@ -99,8 +99,11 @@ def load_pickle(path):
 
 # In[9]: LOAD ERROR MEASURES
 
+measures = ['Accu', 'DE', 'CCI', 'DE_3D', 'Accu5', 'Accu_munscube']
+
 conditions = ['normal','no_patch', 'wrong_illu', 'no_back', 'D65']
 
+SofA_models = ['RefResNet','MobileNet', 'ResNet11', 'ResNet18', 'ResNet50', 'VGG11_bn']
 
 layers = ['fc2','fc1', 'c3', 'c2', 'c1']
 
@@ -109,6 +112,7 @@ Errors_D65_D65 = {}
 
 path = pickles_dir_path
 
+## RefConvNet errors
 for layer in layers:
     ERRORS[layer] = {}
     for condition in conditions[:-1]:
@@ -116,9 +120,31 @@ for layer in layers:
     ERRORS[layer][conditions[-1]] = load_pickle(path + 'Errors_Original_D65_4illu_WCS_%s_normal.pickle'%(layer))
     Errors_D65_D65[layer] = load_pickle(path + 'Errors_Original_D65_D65_WCS_%s_normal.pickle'%(layer))
 
+for condition in conditions[:2]:
+    for measure in measures:
+        if measure == 'CCI':
+            print('We found a %s of %f for RefConvNet under %s '%(measure, np.median(ERRORS['fc2'][condition][measure]), condition))
+        else:
+            print('We found a %s of %f for RefConvNet under %s '%(measure, np.mean(ERRORS['fc2'][condition][measure]), condition))
+
 if not os.path.exists('../figures'):
     os.mkdir('../figures')
 
+# State of the art
+ERRORS_SofA = {}
+for mS_model in SofA_models:
+    ERRORS_SofA[mS_model] = {}
+    for condition in conditions[:2]:
+        ERRORS_SofA[mS_model][condition] = load_pickle(path + 'Errors_%s_CC_5illu_WCS__%s.pickle'%(mS_model, condition))
+
+for mS_model in SofA_models:
+    for condition in conditions[:2]:
+        for measure in measures:
+            if measure == 'CCI':
+                print('We found a %s of %f for model %s under %s '%(measure, np.median(ERRORS_SofA[mS_model][condition][measure]), mS_model, condition))
+
+            else:
+                print('We found a %s of %f for model %s under %s '%(measure, np.mean(ERRORS_SofA[mS_model][condition][measure]), mS_model, condition))
 
 
 #_____________________________________________________________________________________________________________________________
@@ -365,18 +391,48 @@ plt.show()
 
 dis.DEFINE_PLT_RC(type = 1)
 
+colors = [[0.8,0.7,0.3],[0.3,0.4,0.8],[0.4,0.8,0.4],[0.7,0.3,0.7]]
+
+
+### Figures bbox for the effect of the illumination on the Color constancy Index
+
+stats.ttest_rel(np.nanmedian(CCI_Y, axis = (1,2)), np.nanmedian(CCI_B, axis = (1,2)))
+
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.bar(np.arange(1,5),[np.nanmedian(CCI_Y), np.nanmedian(CCI_B), np.nanmedian(CCI_G), np.nanmedian(CCI_R) ],color = [[0.8,0.7,0.3],[0.3,0.4,0.8],[0.4,0.8,0.4],[0.7,0.3,0.7]])
+bplot = ax1.boxplot([np.nanmedian(CCI_Y, axis = (1,2)), np.nanmedian(CCI_B, axis = (1,2)), np.nanmedian(CCI_G, axis = (1,2)), np.nanmedian(CCI_R, axis = (1,2)) ],
+                     vert=True,  # vertical box alignment
+                     patch_artist=True,  # fill with color
+                     )
 ax1.set_xticks([1,2,3,4])
 ax1.set_xticklabels(['Y','B','G','R'],rotation=0)
 plt.yticks(np.arange(0,1.1,0.25))
 ax1.set_ylabel('Median CCI')
 plt.ylim(0.5,1)
+for patch, color in zip(bplot['boxes'], colors):
+        patch.set_facecolor(color)
 #fig.tight_layout()
 fig.savefig(figures_dir_path +'median_YBGR.png', dpi=400)
 plt.show()
 
+
+
+CCI_ResNet = ERRORS_SofA['RefResNet'][conditions[0]]['CCI']
+fig = plt.figure()
+ax1 = fig.add_subplot(111)
+bplot = ax1.boxplot([np.nanmedian(CCI_ResNet[:,:,:,0], axis = (1,2)), np.nanmedian(CCI_ResNet[:,:,:,1], axis = (1,2)), np.nanmedian(CCI_ResNet[:,:,:,2], axis = (1,2)), np.nanmedian(CCI_ResNet[:,:,:,3], axis = (1,2)) ],
+                     vert=True,  # vertical box alignment
+                     patch_artist=True,  # fill with color
+                     )
+ax1.set_xticks([1,2,3,4])
+ax1.set_xticklabels(['Y','B','G','R'],rotation=0)
+plt.yticks(np.arange(0,1.1,0.25))
+ax1.set_ylabel('Median CCI')
+plt.title('ResCC')
+plt.ylim(0.5,1)
+#fig.tight_layout()
+fig.savefig(figures_dir_path +'ResNet_median_YBGR.png', dpi=400)
+plt.show()
 
 '''
 fig = plt.figure()

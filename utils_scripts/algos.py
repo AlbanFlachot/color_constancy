@@ -203,7 +203,7 @@ def procrustes(X, Y, scaling=True, reflection='best'):
 
     # optimum rotation matrix of Y
     A = np.dot(X0.T, Y0)
-    U,s,Vt = np.linalg.svd(A,full_matrices=False)
+    U,s,Vt = np.linalg.svd(A,full_matrices=True)
     V = Vt.T
     T = np.dot(V, U.T)
 
@@ -229,7 +229,9 @@ def procrustes(X, Y, scaling=True, reflection='best'):
         Z = normY * b * np.dot(Y0, T) + muX
         
         # standarised distance between X and b*Y*T + c
-        d = ((X0 - np.dot(Y0, T))**2).sum()/(X0**2).sum()
+        d = np.sum((X0 - np.dot(Y0, T))**2)/np.sum(X0**2)
+        #if d > 1:
+        #        print('Procrustes analysis failed to converge')
         #print ((X0**2).sum())
 
     else:

@@ -50,7 +50,7 @@ parser.add_argument('--training_set', default='CC', type=str, metavar='str',
 parser.add_argument('--NetType', default='Original', type=str, metavar='str',
                     help='type of model to analyze')
 
-parser.add_argument('--layer', default='fc2', type=str, metavar='str',
+parser.add_argument('--layer', default='', type=str, metavar='str',
                     help='layers activations we are looking at')
 
 parser.add_argument('--testing_set', default='WCS', type=str, metavar='str',
@@ -102,25 +102,15 @@ def LoadandComputeOutputs(path2activations, NetType, training_set, Testing_type,
         - Out_soft: Outputs after softmax.
     '''
 
-    img_paths = np.loadtxt(txt_dir_path + 'wcs_lms_1600_validation.txt', dtype=str)
-    train_labels = [int(re.search('object(.*?)/', addr).group(1)) for addr in img_paths]
-    sequence_1600 = np.array([train_labels[i] for i in range(0,train_labels.__len__(),28)])
-    sequence_330 = sequence_1600[sequence_1600<330]
+    #img_paths = np.loadtxt(txt_dir_path + 'wcs_lms_1600_validation.txt', dtype=str)
+    #train_labels = [int(re.search('object(.*?)/', addr).group(1)) for addr in img_paths]
+    #sequence_1600 = np.array([train_labels[i] for i in range(0,train_labels.__len__(),28)])
+    #sequence_330 = sequence_1600[sequence_1600<330]
     #print(path2activations + '_' + layer + '_' + NetType + '_' + training_set + '_' + Testing_type + '_' + testing_set + '_' + testing_condition +'.npy')
-    if (NetType == 'Original') | (NetType == 'ConvNet'):
-        #import pdb; pdb.set_trace()
-        OUT_soft = EM.softmax(np.load(path2activations + '_' + layer + '_' + NetType + '_' + training_set + '_' + Testing_type + '_' + testing_set + '_' + testing_condition +'.npy'))
-    else:
-        paths = glob.glob(path2activations + '*')
-        if Testing_type == '4illu':
-            s = (330,4,10,1600)
-            OUT_soft = EM.softmax(np.array([load_layer(p).reshape(s) for p in paths]))
-            OUT_soft = OUT_soft[:,np.argsort(sequence_330)]
-        else:
-            s = (1600,1,28,1600)
-            OUT_soft = EM.softmax(np.array([load_layer(p).reshape(s) for p in paths[:2]]))
-            OUT_soft = OUT_soft[:,np.argsort(sequence_1600)]
-        OUT_soft = OUT_soft[:,:,:,:,np.argsort(sequence_1600)]
+    OUT_soft = EM.softmax(np.load(path2activations + layer + '_' + NetType + '_' + training_set + '_' + Testing_type + '_' + testing_set + '_' + testing_condition +'.npy'))
+    print(OUT_soft.shape)
+    print(path2activations + layer + '_' + NetType + '_' + training_set + '_' + Testing_type + '_' + testing_set + '_' + testing_condition +'.npy')
+
     return OUT_soft
 
 
@@ -137,10 +127,16 @@ def computeErrors(path2activations, NetType, training_set, Testing_type, testing
         - DE: Delta E error.
     '''
 
-    list_WCS_labels = algos.compute_WCS_Munsells_categories() # import idxes of WCS munsells among the 1600
-
     OUT_soft = LoadandComputeOutputs(path2activations, NetType, training_set, Testing_type, testing_set, layer, testing_condition) # Load output of last layer
 
+    if (NetType != 'Original') | (NetType != 'RefConvNet'):
+        list_WCS_labels = algos.compute_WCS_Munsells_categories() # import idxes of WCS munsells among the 1600
+        muns_alpha2num = sorted(range(1600), key = str)
+        muns_num2alpha = [muns_alpha2num.index(l) for l in range(1600)] # labels of muns in alpha order
+
+        WCS_num2alpha = [sorted(range(1600), key = str).index(l) for l in list_WCS_labels] # labels of WCS in alpha order
+        WCS_alpha2num = [muns_num2alpha[l] for l in list_WCS_labels] # indx of WCS in alpha order
+        OUT_soft = OUT_soft[:,:,:,:,muns_num2alpha]
 
     # Compute Delta E ------------------------------------------------------------------------------------
     DE = EM.WEIGHTED_PREDICTION_LAB(OUT_soft, test_WCS = (testing_set =='WCS'), space = 'CIELab')
@@ -157,9 +153,9 @@ def computeErrors(path2activations, NetType, training_set, Testing_type, testing
     for mod in range(nb_mod):
         for muns in range(nb_obj):
             for illu in range(nb_illu):
-                Eval[mod,muns,illu] = EM.evaluation(np.argmax(OUT_soft[mod,muns,illu], axis=-1), list_WCS_labels[muns])
-                Eval5[mod, muns, illu] = EM.evaluation5(np.argsort(OUT_soft[mod,muns,illu], axis=-1)[:,-5:], list_WCS_labels[muns])
-                Accu_munscube[mod, muns, illu] =  EM.evaluation_munscube(DE_3D[mod,muns,illu])
+                Eval[mod, muns, illu] = EM.evaluation(np.argmax(OUT_soft[mod, muns, illu], axis=-1), list_WCS_labels[muns])
+                Eval5[mod, muns, illu] = EM.evaluation5(np.argsort(OUT_soft[mod, muns, illu], axis=-1)[:,-5:], list_WCS_labels[muns])
+                Accu_munscube[mod, muns, illu] = EM.evaluation_munscube(DE_3D[mod, muns, illu])
 
     # Compute CCI ------------------------------------------------------------------------------------
     WCS_LAB_4 = np.load(npy_dir_path +'LAB_WCS_ABCD.npy')
@@ -241,6 +237,8 @@ if not os.path.exists('../pickles'):
 # In[9]: Compute errors Munsells
 
 Accu, DE, CCI, DE_3D, Accu5, Accu_munscube = computeErrors(path2activations, NetType, args.training_set, Testing_type, args.testing_set, args.layer, args.testing_condition)
+
+print(Accu.mean())
 
 if not os.path.exists('../pickles'):
     os.mkdir('../pickles')

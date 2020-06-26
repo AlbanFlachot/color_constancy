@@ -18,7 +18,9 @@ import pickle
 import scipy.io as sio
 import os
 import seaborn as sns
-
+from statannot import add_stat_annotation
+import scipy.stats as stats
+import pandas as pd
 
 import sys
 sys.path.append('../../')
@@ -44,7 +46,7 @@ def load_layer(path):
 	LAYER = list()
 	for addr in addrs:
 		pickle_in = open(addr,'rb')
-		layer = pickle.load(pickle_in)
+		layer = pickle.load(pickle_in, encoding='latin1')
 		pickle_in.close()
 		LAYER.extend(layer)
 	return np.array(LAYER)
@@ -94,7 +96,7 @@ def from330to8x40(X):
 def load_pickle(path):
     import pickle
     f = open(path,"rb")
-    return pickle.load(f)
+    return pickle.load(f, fix_imports=True, encoding='latin1', errors="strict")
 
 
 # In[9]: LOAD ERROR MEASURES
@@ -181,7 +183,7 @@ dis.display_munsells(general_mat_consistency2[0:-3],1)
 
 
 with open(txt_dir_path +"XYZ_WCS.txt", "rb") as fp:   #Pickling
-    XYZ_WCS = pickle.load(fp)
+    XYZ_WCS = pickle.load(fp, encoding='latin1')
 
 RGB_muns = [CT.XYZ2sRGB(XYZ) for XYZ in XYZ_WCS]
 WCS_MAT_RGB =from330to8x40(RGB_muns)
@@ -288,7 +290,7 @@ dis.DEFINE_PLT_RC(type = 0.5)
 
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.scatter(range(40)*8,CCI_MAT_chrom.flatten(),color = WCS_MAT_sRGB[1:-1,1:].reshape(-1,3),marker = '.',s = 400)
+ax1.scatter(list(range(40))*8,CCI_MAT_chrom.flatten(),color = WCS_MAT_sRGB[1:-1,1:].reshape(-1,3),marker = '.',s = 400)
 ax1.set_xlabel('Hue')
 ax1.set_xticks([1.5,5.5,9.5,13.5,18.5,22.5,26.5,30.5,34.5,38.5])
 ax1.set_xticklabels(['R','YR','Y','GY','G','BG','B','PB','P','RP'])
@@ -302,7 +304,7 @@ plt.show()
 
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.scatter(range(9,1,-1)*40,CCI_MAT_chrom.T.flatten(),color = np.moveaxis(WCS_MAT_sRGB[1:-1,1:],1,0).reshape(-1,3),marker = '.',s = 400)
+ax1.scatter(list(range(9,1,-1))*40,CCI_MAT_chrom.T.flatten(),color = np.moveaxis(WCS_MAT_sRGB[1:-1,1:],1,0).reshape(-1,3),marker = '.',s = 400)
 ax1.scatter(range(10,0,-1),CCI_MAT_achrom,color = WCS_MAT_sRGB[:,0],marker = '.',s = 400)
 ax1.set_xlabel('Value')
 ax1.set_xticks(range(0,11,2))
@@ -389,15 +391,56 @@ plt.xlim(-0.05,1)
 fig.savefig(figures_dir_path +'YBGR_distrib_CCI.png', dpi=400)
 plt.show()
 
-dis.DEFINE_PLT_RC(type = 1)
+dis.DEFINE_PLT_RC(type = 0.5)
 
-colors = [[0.8,0.7,0.3],[0.3,0.4,0.8],[0.4,0.8,0.4],[0.7,0.3,0.7]]
-
+colors = [tuple([0.8,0.7,0.3]),tuple([0.3,0.4,0.8]),tuple([0.4,0.8,0.4]),tuple([0.7,0.3,0.7])]
+#colors = ['o','b','g','m']
 
 ### Figures bbox for the effect of the illumination on the Color constancy Index
 
-stats.ttest_rel(np.nanmedian(CCI_Y, axis = (1,2)), np.nanmedian(CCI_B, axis = (1,2)))
+#ax = stats.ttest_rel(np.nanmedian(CCI_Y, axis = (1,2)), np.nanmedian(CCI_B, axis = (1,2)))
 
+DICT_CCI = {}
+DICT_CCI['Y'],DICT_CCI['B'], DICT_CCI['G'],DICT_CCI['R'] = np.nanmedian(CCI_Y, axis = (1,2)), np.nanmedian(CCI_B, axis = (1,2)), np.nanmedian(CCI_G, axis = (1,2)), np.nanmedian(CCI_R, axis = (1,2)) 
+dat = pd.DataFrame(DICT_CCI)
+
+fig = plt.figure(figsize = (7,10))
+ax = sns.boxplot( data = dat , linewidth = 3, palette = colors, width = 0.85)
+test_results = add_stat_annotation(ax, data=dat,
+                                   box_pairs=[('Y', 'B'), ('G', 'R'), ('B', 'G')],
+                                   test='t-test_paired', text_format='star',
+                                   loc='outside', verbose=2)
+ax.set_yticks([0.6,0.8,1])
+ax.set_ylabel('Median CCI')
+plt.ylim(0.6,1.1)
+#plt.title('ConvNet')
+fig.subplots_adjust(top=0.973,bottom=0.049,left=0.214,right=0.955,hspace=0.2,wspace=0.2)
+fig.savefig(figures_dir_path +'ConvNet_median_YBGR.png', dpi=400)
+plt.show()
+
+
+CCI_ResNet = ERRORS_SofA['RefResNet'][conditions[0]]['CCI']
+DICT_CCI = {}
+DICT_CCI['Y'],DICT_CCI['B'], DICT_CCI['G'],DICT_CCI['R'] = np.nanmedian(CCI_ResNet[:,:,:,0], axis = (1,2)), np.nanmedian(CCI_ResNet[:,:,:,1], axis = (1,2)), np.nanmedian(CCI_ResNet[:,:,:,2], axis = (1,2)), np.nanmedian(CCI_ResNet[:,:,:,3], axis = (1,2)) 
+dat = pd.DataFrame(DICT_CCI)
+
+fig = plt.figure(figsize = (6.5,10))
+ax = sns.boxplot( data = dat , linewidth = 3, palette = colors, width = 0.85)
+test_results = add_stat_annotation(ax, data=dat,
+                                   box_pairs=[('Y', 'B'), ('G', 'R'), ('B', 'G')],
+                                   test='t-test_paired', text_format='star',
+                                   loc='outside', verbose=2)
+ax.set_yticks([0.9,1])
+#ax.set_ylabel('Median CCI')
+plt.ylim(0.85,1.01)
+#plt.title('ResNet')
+fig.subplots_adjust(top=0.973,bottom=0.049,left=0.139,right=0.955,hspace=0.2,wspace=0.2)
+fig.savefig(figures_dir_path +'ResNet_median_YBGR.png', dpi=400)
+plt.show()
+
+
+
+'''
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
 bplot = ax1.boxplot([np.nanmedian(CCI_Y, axis = (1,2)), np.nanmedian(CCI_B, axis = (1,2)), np.nanmedian(CCI_G, axis = (1,2)), np.nanmedian(CCI_R, axis = (1,2)) ],
@@ -408,9 +451,10 @@ ax1.set_xticks([1,2,3,4])
 ax1.set_xticklabels(['Y','B','G','R'],rotation=0)
 plt.yticks(np.arange(0,1.1,0.25))
 ax1.set_ylabel('Median CCI')
-plt.ylim(0.5,1)
+plt.ylim(0.6,1.1)
 for patch, color in zip(bplot['boxes'], colors):
         patch.set_facecolor(color)
+
 #fig.tight_layout()
 fig.savefig(figures_dir_path +'median_YBGR.png', dpi=400)
 plt.show()
@@ -432,7 +476,7 @@ plt.title('ResCC')
 plt.ylim(0.5,1)
 #fig.tight_layout()
 fig.savefig(figures_dir_path +'ResNet_median_YBGR.png', dpi=400)
-plt.show()
+plt.show()'''
 
 '''
 fig = plt.figure()

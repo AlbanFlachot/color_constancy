@@ -101,16 +101,18 @@ def load_pickle(path):
 
 # In[9]: LOAD ERROR MEASURES
 
-measures = ['Accu', 'DE', 'CCI', 'DE_3D', 'Accu5', 'Accu_munscube']
+measures = ['Accu', 'Accu5', 'Accu_munscube', 'DE', 'CCI', 'DE_3D']
 
 conditions = ['normal','no_patch', 'wrong_illu', 'no_back', 'D65']
 
-SofA_models = ['RefResNet','MobileNet', 'ResNet11', 'ResNet18', 'ResNet50', 'VGG11_bn']
+SofA_models = ['MobileNet', 'VGG11_bn', 'ResNet50','RefResNet']
 
 layers = ['fc2','fc1', 'c3', 'c2', 'c1']
 
+
 ERRORS = {}
 Errors_D65_D65 = {}
+
 
 path = pickles_dir_path
 
@@ -122,32 +124,35 @@ for layer in layers:
     ERRORS[layer][conditions[-1]] = load_pickle(path + 'Errors_Original_D65_4illu_WCS_%s_normal.pickle'%(layer))
     Errors_D65_D65[layer] = load_pickle(path + 'Errors_Original_D65_D65_WCS_%s_normal.pickle'%(layer))
 
-for condition in conditions[:2]:
-    for measure in measures:
-        if measure == 'CCI':
-            print('We found a %s of %f for RefConvNet under %s '%(measure, np.median(ERRORS['fc2'][condition][measure]), condition))
-        else:
-            print('We found a %s of %f for RefConvNet under %s '%(measure, np.mean(ERRORS['fc2'][condition][measure]), condition))
-
-if not os.path.exists('../figures'):
-    os.mkdir('../figures')
-
-# State of the art
 ERRORS_SofA = {}
-for mS_model in SofA_models:
-    ERRORS_SofA[mS_model] = {}
-    for condition in conditions[:2]:
-        ERRORS_SofA[mS_model][condition] = load_pickle(path + 'Errors_%s_CC_5illu_WCS__%s.pickle'%(mS_model, condition))
+for model in ( SofA_models):
+        ERRORS_SofA[model] = {}
+        for condition in conditions[0:-1]:
+                ERRORS_SofA[model][condition] = load_pickle(path +  'Errors_%s_CC_5illu_WCS__%s.pickle'%(model, condition))
 
-for mS_model in SofA_models:
-    for condition in conditions[:2]:
-        for measure in measures:
-            if measure == 'CCI':
-                print('We found a %s of %f for model %s under %s '%(measure, np.median(ERRORS_SofA[mS_model][condition][measure]), mS_model, condition))
+DICT_ERRORS = {}
+for model in ( SofA_models + ['RefConvNet']):
+        DICT_ERRORS[model] = {}
+        for condition in conditions[2:-1]:
+                DICT_ERRORS[model][condition] = {}
+                for measure in measures:
+                        DICT_ERRORS[model][condition][measure] = {}
+                        if measure == 'CCI':
+                                if model == 'RefConvNet':
+                                        DICT_ERRORS[model][condition][measure] = np.round(np.median(ERRORS['fc2'][condition][measure]),2)
+                                else:
+                                        DICT_ERRORS[model][condition][measure] = np.round(np.median(ERRORS_SofA[model][condition][measure]),2)
+                        else:
+                                if model == 'RefConvNet':
+                                        DICT_ERRORS[model][condition][measure] = np.round(np.mean(ERRORS['fc2'][condition][measure]),2)
+                                else:
+                                        DICT_ERRORS[model][condition][measure] = np.round(np.mean(ERRORS_SofA[model][condition][measure]),2)
 
-            else:
-                print('We found a %s of %f for model %s under %s '%(measure, np.mean(ERRORS_SofA[mS_model][condition][measure]), mS_model, condition))
-
+df = pd.DataFrame.from_dict({(i,j): DICT_ERRORS[i][j] 
+                           for i in DICT_ERRORS.keys() 
+                           for j in DICT_ERRORS[i].keys()},
+                       orient='columns')
+df.to_csv(path_or_buf ='ERRORS_all.csv')
 
 #_____________________________________________________________________________________________________________________________
 
@@ -161,7 +166,7 @@ with open(txt_dir_path +"WCS_chroma.txt") as f:
 
 
 WCS_MAT_CHROMA = from330to8x40(CHROMA)
-dis.display_munsells_inv(WCS_MAT_CHROMA,16,'WCS Chroma')
+dis.display_munsells_inv(WCS_MAT_CHROMA,16,'WCS Chroma', save = True, add = figures_dir_path + 'WCS_chroma.png')
 
 
 mat_speakers = sio.loadmat(npy_dir_path +'matrix_WCS_speakers.mat')['WCS_speakers']
@@ -191,7 +196,7 @@ WCS_MAT_RGB =from330to8x40(RGB_muns)
 WCS_MAT_sRGB = (WCS_MAT_RGB - np.amin(WCS_MAT_RGB))/(np.amax(WCS_MAT_RGB)-np.amin(WCS_MAT_RGB))
 RGB_muns = (RGB_muns - np.amin(RGB_muns))/(np.amax(RGB_muns)-np.amin(RGB_muns))
 
-dis.display_munsells_inv(WCS_MAT_sRGB,1,'WCS Munsells')
+dis.display_munsells_inv(WCS_MAT_sRGB,1,'WCS Munsells', save = True, add = figures_dir_path + 'WCS_RGB.png')
 
 
 nb_mod = ERRORS[layers[0]][conditions[0]]['DE'].shape[0]
@@ -222,6 +227,7 @@ print(DE_D65)
 
 
 DE_MAT = from330to8x40(np.mean(ERRORS[layers[0]][conditions[0]]['DE'],axis = (-1,-2)))
+DE_MAT_ResNet = from330to8x40(np.mean(ERRORS_SofA['RefResNet'][conditions[0]]['DE'],axis = (-1,-2)))
 DE_MAT_D65 = from330to8x40(np.mean(Errors_D65_D65[layers[0]]['DE'],axis = (-1,-2)))
 DIST_neighbours_MAT = from330to8x40(WCS_neighbouring_dist)
 
@@ -229,9 +235,13 @@ normalized_DELTAE = np.mean(DE_MAT, axis = 0)/DIST_neighbours_MAT
 normalized_DELTAE[np.mean(DE_MAT, axis = 0) == 0] = 0
 
 Accu_MAT = from330to8x40(ERRORS[layers[0]][conditions[0]]['Accu'])
+Accu_MAT_ResNet = from330to8x40(ERRORS_SofA['RefResNet'][conditions[0]]['Accu'])
 
 dis.display_munsells_inv(np.mean(Accu_MAT,axis = (0,-1)), np.amax(np.mean(Accu_MAT,axis = (0,-1))), 'Accuracy')
+dis.display_munsells_inv(np.mean(Accu_MAT_ResNet,axis = (0,-1)), np.amax(np.mean(Accu_MAT_ResNet,axis = (0,-1))), 'Accuracy')
+
 dis.display_munsells_inv(np.mean(DE_MAT,axis = 0), np.amax(np.mean(DE_MAT,axis = 0)), '$\Delta$E')
+dis.display_munsells_inv(np.mean(DE_MAT_ResNet,axis = 0), np.amax(np.mean(DE_MAT_ResNet,axis = 0)), '$\Delta$E')
 
 DE_MAT_normal = DE_MAT
 DE_MAT_nopatch =  from330to8x40(np.mean(ERRORS[layers[0]][conditions[1]]['DE'],axis = (-1,-2)))
@@ -257,6 +267,8 @@ dis.display_munsells_inv(1-np.mean(CCI_MAT_wrongback,axis = 0), np.amax(1-np.mea
 dis.display_munsells_inv(1-np.mean(CCI_MAT_noback,axis = 0), np.amax(1-np.mean(CCI_MAT_noback,axis = 0)), 'CCI$_{noback}$',  save = True, add = figures_dir_path + 'CCI$_{noback}$.png')
 dis.display_munsells_inv(1-np.mean(CCI_MAT_D65D65,axis = 0), np.amax(1-np.mean(CCI_MAT_D65D65,axis = 0)), 'CCI$_{D65}$',  save = True, add = figures_dir_path + 'CCI$_{D65}$.png')
 
+np.corrcoef(WCS_MAT_CHROMA[1:-1,1:].flatten(), np.mean(DE_MAT_nopatch,axis = 0)[1:-1,1:].flatten())
+
 np.corrcoef(WCS_MAT_CHROMA[1:-1,1:].flatten(), np.mean(DE_MAT_wrongback,axis = 0)[1:-1,1:].flatten())
 np.corrcoef(WCS_MAT_CHROMA[1:-1,1:].flatten(), 1-np.mean(CCI_MAT_wrongback,axis = 0)[1:-1,1:].flatten())
 np.corrcoef(WCS_MAT_CHROMA[1:-1,1:].flatten(), np.mean(DE_MAT_noback,axis = 0)[1:-1,1:].flatten())
@@ -266,7 +278,7 @@ dis.display_munsells_inv(np.mean(DE_MAT_D65,axis = 0), np.amax(np.mean(DE_MAT_D6
 dis.display_munsells_inv(DE_MAT[0], np.amax(DE_MAT[0]),'$\Delta$E')
 dis.display_munsells_inv(DIST_neighbours_MAT, np.amax(DIST_neighbours_MAT),'Dist Neighbours')
 #dis.display_munsells_inv(normalized_DELTAE,np.amax(normalized_DELTAE),'Normalize $\Delta$E')
-
+iowua
 # Comparison with consistency
 dis.display_munsells_inv(np.std(DE_MAT,axis = 0), np.amax(np.std(DE_MAT,axis = 0)), 'STD $\Delta$E')
 np.corrcoef(np.std(DE_MAT,axis = 0)[1:-1].flatten(), WCS_MAT_CHROMA[1:-1].flatten())
@@ -405,7 +417,7 @@ DICT_CCI['Y'],DICT_CCI['B'], DICT_CCI['G'],DICT_CCI['R'] = np.nanmedian(CCI_Y, a
 dat = pd.DataFrame(DICT_CCI)
 
 fig = plt.figure(figsize = (7,10))
-ax = sns.boxplot( data = dat , linewidth = 3, palette = colors, width = 0.85)
+ax = sns.boxplot( data = dat , linewidth = 3, palette = colors, width = 0.85, fliersize = 10)
 test_results = add_stat_annotation(ax, data=dat,
                                    box_pairs=[('Y', 'B'), ('G', 'R'), ('B', 'G')],
                                    test='t-test_paired', text_format='star',
@@ -425,7 +437,7 @@ DICT_CCI['Y'],DICT_CCI['B'], DICT_CCI['G'],DICT_CCI['R'] = np.nanmedian(CCI_ResN
 dat = pd.DataFrame(DICT_CCI)
 
 fig = plt.figure(figsize = (6.5,10))
-ax = sns.boxplot( data = dat , linewidth = 3, palette = colors, width = 0.85)
+ax = sns.boxplot( data = dat , linewidth = 3, palette = colors, width = 0.85, fliersize = 10)
 test_results = add_stat_annotation(ax, data=dat,
                                    box_pairs=[('Y', 'B'), ('G', 'R'), ('B', 'G')],
                                    test='t-test_paired', text_format='star',
@@ -625,7 +637,7 @@ ax1.set_xticklabels([])
 plt.xticks(fontsize = 21)
 #plt.yticks(fontsize = 14)
 plt.yticks(np.arange(0,105,25),fontsize = 21)
-ax1.set_ylabel('top1 Accuracy',fontsize = 25)
+ax1.set_ylabel('Top-1 Accuracy',fontsize = 25)
 ax1.set_xticklabels(['CC$_{normal}$','CC$_{no patch}$','CC$_{wrong back}$','CC$_{no back}$','D65$_{normal}$'], rotation = 45)
 fig.tight_layout()
 fig.savefig(figures_dir_path + 'Accuracy.png', dpi=400)
@@ -639,7 +651,7 @@ ax1.set_xticklabels([])
 plt.xticks(fontsize = 21)
 #plt.yticks(fontsize = 14)
 plt.yticks(np.arange(0,105,25),fontsize = 21)
-ax1.set_ylabel('top5 Accuracy',fontsize = 25)
+ax1.set_ylabel('Top-5 Accuracy',fontsize = 25)
 ax1.set_xticklabels(['CC$_{normal}$','CC$_{no patch}$','CC$_{wrong back}$','CC$_{no back}$','D65$_{normal}$'], rotation = 45)
 fig.tight_layout()
 fig.savefig(figures_dir_path + 'Accuracy5.png', dpi=400)
@@ -653,7 +665,7 @@ ax1.set_xticklabels([])
 plt.xticks(fontsize = 21)
 #plt.yticks(fontsize = 14)
 plt.yticks(np.arange(0,105,25),fontsize = 21)
-ax1.set_ylabel('Accuracy MunsCube',fontsize = 25)
+ax1.set_ylabel('Muns$^3$ Accuracy',fontsize = 25)
 ax1.set_xticklabels(['CC$_{normal}$','CC$_{no patch}$','CC$_{wrong back}$','CC$_{no back}$','D65$_{normal}$'], rotation = 45)
 fig.tight_layout()
 fig.savefig(figures_dir_path + 'Accuracy_munscube.png', dpi=400)

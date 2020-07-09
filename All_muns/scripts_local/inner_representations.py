@@ -8,6 +8,7 @@ import sys
 import re
 import os
 from scipy.spatial.transform import Rotation as R
+import pandas as pd
 
 
 import sys
@@ -296,7 +297,11 @@ for i in [TRANSFO_LAB[layer]['normal'] for layer in layers[::-1]]:
 np.save('inner_rep_%s.npy'%net_name, [EXPLAINED, PROCRUSTES_LAB, PROCRUSTES_LGN, PROCRUSTES_LMS, PROCRUSTES_MUNS, AFFINE_LMS , AFFINE_LAB , AFFINE_MUNS, TRANSFO_LAB])
 
 
+temp_explained = {}
+for layer in layers[::-1]:
+        temp_explained[layer] = {}
+        for condition in conditions[:1]:
+                temp_explained[layer][condition] = EXPLAINED[layer][condition].sum()
 
-
-
+df = pd.DataFrame(temp_explained)
 

@@ -58,7 +58,7 @@ def load_layer(path):
 txt_dir_path = '../../txt_files/'
 npy_dir_path = '../../npy_files/'
 pickles_dir_path = '../pickles/'
-figures_dir_path = '../figures/'
+figures_dir_path = '/home/alban/Dropbox/project_color_constancy/PAPER/figures/'
 
 # In[9]: load mnodels results
 
@@ -94,10 +94,14 @@ def from330to8x40(X):
         count +=1
     return np.moveaxis(WCS_MAT,(0,1),(idx,idx+1)) # move dimensions in the right order
 
+
+
 def load_pickle(path):
     import pickle
     f = open(path,"rb")
-    return pickle.load(f)
+    return pickle.load(f, fix_imports=True, encoding='latin1', errors="strict")
+
+
 
 def VXY2VHC(VXY, muns = 'True'):
     '''
@@ -132,7 +136,7 @@ for layer in layers[:1]:
     DE_VHC[layer] = {}
     for condition in conditions[:-1]:
         DE_VHC[layer][condition] = load_pickle(path + 'Errors_Original_CC_4illu_WCS_%s_%s.pickle'%(layer, condition))['DE_3D']
-    #ERRORS[layer][conditions[-1]] = load_pickle(path + 'Errors_Original_D65_4illu_WCS_%s_normal.pickle'%(layer))
+    DE_VHC[layer][conditions[-1]] = load_pickle(path + 'Errors_Original_D65_4illu_WCS__%s_normal.pickle'%(layer))['DE_3D']
     #Errors_D65_D65[layer] = load_pickle(path + 'Errors_Original_D65_D65_WCS_%s_normal.pickle'%(layer))
 
 if not os.path.exists(figures_dir_path):
@@ -160,22 +164,73 @@ def error_muns(DE_VHC):
 
 dis.DEFINE_PLT_RC(type = 1)
 
-def histo_VHC(DE_VHC, save = True, path = 0):
-    f, axes = plt.subplots(1,3,sharey = True, figsize = (10,4))
-    axes[0].hist(DE_VHC.reshape(-1,3)[:,0], bins = np.arange(-10.5,10.5,1), color = 'k')
+def histo_VHC(DE_VHC, titl, save = True, path = 0, col = 'k'):
+    f, axes = plt.subplots(1,3,sharey = True, figsize = (10,3))
+    axes[0].hist(DE_VHC.reshape(-1,3)[:,0], bins = np.arange(-10.5,10.5,1), color = col)
     axes[0].set_xlabel('Value')
+    axes[0].set_ylabel('Number of cases')
+    axes[0].ticklabel_format(style = 'sci',scilimits = [-3,3])
 
-    axes[1].hist(DE_VHC.reshape(-1,3)[:,1]/9, bins = np.arange(-5.5,5.5,1),color ='k')
+    axes[1].hist(DE_VHC.reshape(-1,3)[:,1], bins = np.arange(-20.5,20.5,1),color =col)
     axes[1].set_xlabel('Hue')
-    axes[2].hist(DE_VHC.reshape(-1,3)[:,2], bins = np.arange(-8.5,8.5,1),color ='k')
+    axes[1].set_title(titl)
+    axes[2].hist(DE_VHC.reshape(-1,3)[:,2]*2, bins = np.arange(-16.5,16.5,1),color =col)
     axes[2].set_xlabel('Chroma')
-    plt.subplots_adjust(top=0.95, bottom=0.15, left=0.15, right=0.95, hspace=0.1,
+    axes[2].set_xticks(np.arange(-16,17,8))
+    plt.subplots_adjust(top=0.88, bottom=0.19, left=0.095, right=0.95, hspace=0.1,
                     wspace=0.1)
     plt.show()
     if save:
         f.savefig(path)
 
+def histo2D_VHC(DE_VHC, titl, save = True, path = 0, col = 'k'):
+    f, axes = plt.subplots(1,3,sharey = True, figsize = (10,3))
+    axes[0].hist2d(DE_VHC.reshape(-1,3)[:,0], DE_VHC.reshape(-1,3)[:,1], bins = [np.arange(-10.5,10.5,1),np.arange(-20.5,20.5,1)], cmap = 'Greys')
+    axes[0].set_xlabel('Value')
+    axes[0].set_ylabel('Hue')
+    axes[0].set_ylim(-20,20)
+    axes[0].ticklabel_format(style = 'sci',scilimits = [-3,3])
+
+    axes[1].hist2d(DE_VHC.reshape(-1,3)[:,0], DE_VHC.reshape(-1,3)[:,2]*2, bins = [np.arange(-10.5,10.5,1), np.arange(-16.5,16.5,1)], cmap = 'Greys')
+    axes[1].set_xlabel('Value')
+    axes[1].set_ylabel('Chroma')
+    #axes[1].set_xticks(np.arange(-16,17,8))
+    axes[1].set_title(titl)
+    
+    axes[2].hist2d(DE_VHC.reshape(-1,3)[:,1], DE_VHC.reshape(-1,3)[:,2]*2, bins = [np.arange(-20.5,20.5,1), np.arange(-16.5,16.5,1)], cmap = 'Greys')
+    axes[2].set_xlabel('Hue')
+    axes[2].set_ylabel('Chroma')
+    axes[2].set_ylim(-20,20)
+    #axes[2].set_xticks(np.arange(-16,17,8))
+    plt.subplots_adjust(top=0.88, bottom=0.19, left=0.095, right=0.95, hspace=0.1,
+                    wspace=0.19)
+    plt.show()
+    if save:
+        f.savefig(path)
+
 for layer in layers[:1]:
-    for condition in conditions[:-1]:
-        histo_VHC(DE_VHC[layer][condition],save = True, path = figures_dir_path + 'error_muns_coord/%s_%s.png'%(layer, condition))
+    for condition in conditions[:]:
+        histo_VHC(DE_VHC[layer][condition],titl = '%s'%( condition),save = True, path = figures_dir_path + 'error_muns_coord/%s_%s.png'%(layer, condition))
+
+for layer in layers[:1]:
+    for condition in conditions[:]:
+        histo2D_VHC(DE_VHC[layer][condition],titl = '%s'%( condition),save = True, path = figures_dir_path + 'error_muns_coord/2D_%s_%s.png'%(layer, condition))
+### What if model were to choose random munsell?
+
+
+list_WCS_labels = algos.compute_WCS_Munsells_categories()
+MUNSELL_VHC = np.load(npy_dir_path +'MUNS_COORDINATES_VHC.npy')
+
+
+RANDOM_VAL = np.random.choice(MUNSELL_VHC[:,0],int(DE_VHC[layer][condition].size/3))
+RANDOM_HUE = np.random.choice(MUNSELL_VHC[:,1],int(DE_VHC[layer][condition].size/3))
+RANDOM_CHROMA = np.random.choice(MUNSELL_VHC[:,2],int(DE_VHC[layer][condition].size/3)).astype(int)
+
+RANDOM_VHC = np.array([RANDOM_VAL, RANDOM_HUE, RANDOM_CHROMA]).T
+ERROR_RANDOM_VHC = -(RANDOM_VHC.reshape(-1,330,3) - MUNSELL_VHC[list_WCS_labels])
+ERROR_RANDOM_VHC = error_muns(ERROR_RANDOM_VHC)
+
+histo_VHC(ERROR_RANDOM_VHC,titl = 'random', save = True, path = figures_dir_path + 'error_muns_coord/random.png', col = 'grey')
+
+histo2D_VHC(ERROR_RANDOM_VHC,titl = 'random', save = True, path = figures_dir_path + 'error_muns_coord/2D_random.png')
 

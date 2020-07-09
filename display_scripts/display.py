@@ -268,18 +268,22 @@ def display_munsells_inv(WCS_MAT, norm, title,save = True, add = 'a'):
         for i in range(len(WCS_MAT2)): # rearange values (hence inv)
             WCS_MAT[i] = WCS_MAT2[9-i]
         # definitions for the axes
-        left, width = 0.1, 0.8
-        bottom, height = 0.1, 0.8
+        left, width = 0.08, 0.82
+        bottom, height = 0.08, 0.85
         left_h = left + width + 0.05
         bottom_h = 0
 
         rect_chro = [left, bottom, width, height]
         rect_achro = [left_h, bottom_h, 0.8/40, 1]
+        
+        left_s, bottom_s, width_s, height_s = 0.65,0.03, 0.2, 0.1
+        scale = [left_s,  bottom_s, width_s,height_s]
 
         fig = plt.figure(1, figsize=(8, 3))
 
         axchro = plt.axes(rect_chro)
         axachro = plt.axes(rect_achro)
+        axscale = plt.axes(scale)
 
         # image plot:
         WCS_MAT_chro = WCS_MAT[1:-1,1:]
@@ -312,6 +316,18 @@ def display_munsells_inv(WCS_MAT, norm, title,save = True, add = 'a'):
         plt.setp(axchro.get_xticklabels(), fontsize=14)
         plt.setp(axchro.get_yticklabels(), fontsize=14)
         plt.setp(axachro.get_yticklabels(), fontsize=14)
+        
+        a = np.arange(0,1.05,0.1).reshape(1,11)
+        im_scale = np.stack((a,a,a), axis = 2)
+        axscale.imshow(im_scale)
+        axscale.set_xticks([])
+        axscale.set_yticks([])
+        fig.text(left_s - 0.015, bottom_s + height_s/2, str(0), horizontalalignment='center', verticalalignment='center', fontsize = 14)
+        if norm >10 :
+                max_im = int(norm)
+        else:
+                max_im = np.round(norm,1)
+        fig.text(left_s + width_s + 0.025, bottom_s+ height_s/2, str(max_im), horizontalalignment='center',verticalalignment='center', fontsize = 14)
         fig.tight_layout
         plt.show()
         if save:
@@ -320,6 +336,7 @@ def display_munsells_inv(WCS_MAT, norm, title,save = True, add = 'a'):
 
         #import pdb; pdb.set_trace()
 
+ 
 
 def vis_square(data, name_fig):
     #Take an array of shape (n, height, width) or (n, height, width, 3)

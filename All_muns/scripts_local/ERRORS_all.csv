@@ -1,0 +1,8 @@
+,MobileNet,MobileNet,VGG11_bn,VGG11_bn,ResNet50,ResNet50,RefResNet,RefResNet,RefConvNet,RefConvNet
+,wrong_illu,no_back,wrong_illu,no_back,wrong_illu,no_back,wrong_illu,no_back,wrong_illu,no_back
+Accu,7.02,1.36,7.74,0.79,7.06,0.02,7.11,0.32,7.18,1.37
+Accu5,18.05,4.39,18.5,3.44,18.53,1.33,19.01,1.57,20.74,5.72
+Accu_munscube,35.33,9.74,36.3,6.59,35.09,0.32,33.95,1.54,58.02,10.26
+DE,20.21,38.58,20.05,50.35,17.97,54.61,19.96,55.94,19.2,39.58
+CCI,-1.28,-3.84,-1.21,-6.81,-1.12,-6.24,-1.29,-5.8,-1.29,-3.78
+DE_3D,-0.29,-0.42,-0.3,0.32,-0.16,3.09,-0.27,1.04,-0.24,-0.63

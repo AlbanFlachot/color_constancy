@@ -61,6 +61,22 @@ def LMS2XYZ(LMS):
     XYZ = np.dot(LMS,M.T)
     return XYZ
 
+def XYZ2LMS(XYZ):
+    '''
+    Convert from LMS to XYZ coordinates using the matrix given by a linear regression
+    Input:
+        LMS: Matrix of LMS values (could be an image)
+    Outputs:
+        XYZ: Matrix of XYZ values
+    '''
+    if XYZ.shape[-1] != 3:
+        raise ValueError('Last dimension of XYZ must be 3')
+    M = np.linalg.inv(np.array([[ 4.51420115e+01, -2.68211814e+01,  4.25120051e+00],
+       [ 1.59927663e+01,  6.60496090e+00,  1.26892433e-07],
+       [-5.03167761e-07, -3.30469228e-07,  2.25500896e+01]]))
+    #XYZtemp = XYZ.reshape(3,-1)
+    LMS = np.dot(XYZ,M.T)
+    return LMS
 
 def Sharpening(x):
     M_diag = np.array([[ 1.6934   , -1.5335   ,  0.075    ],
@@ -80,6 +96,11 @@ def XYZ2sRGB(XYZ):
     Trans = np.array([[3.24045, -1.537138, -0.49853],[-0.9692660, 1.8760108, 0.0415560],[0.0556434, -0.2040259, 1.0572252]])
     sRGB = np.dot(XYZ,Trans.T)
     return sRGB
+    
+def sRGB2XYZ(RGB):
+    Trans = np.linalg.inv(np.array([[3.24045, -1.537138, -0.49853],[-0.9692660, 1.8760108, 0.0415560],[0.0556434, -0.2040259, 1.0572252]]))
+    XYZ = np.dot(RGB,Trans.T)
+    return XYZ
 
 def cart2sph(x,y,z):
 	'''

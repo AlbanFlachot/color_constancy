@@ -49,7 +49,7 @@ parser = argparse.ArgumentParser(description='Parsing variables for rendering im
 parser.add_argument('--gpu_id', default=0, type=int, metavar='N',
                     help='ID of Gpu to use')
 
-parser.add_argument('--load_dir', default='', type=str, metavar='str',
+parser.add_argument('--load_dir', default='/mnt/juggernaut/alban/project_color_constancy/PYTORCH/WCS/train_centered/All_muns/INST_CC/', type=str, metavar='str',
                     help='dir where to load models, weights and training curves')
 
 parser.add_argument('--testing_dir', default='', type=str, metavar='str',
@@ -94,6 +94,7 @@ list_WCS_labels = algos.compute_WCS_Munsells_categories() # import idxes of WCS 
 DIR_LOAD = args.load_dir
 
 TRAINING_CURV, EPOCHMAX = DLtest.training_curves(DIR_LOAD + 'INST_%s/'%(args.training_set),args.training_set, 90)
+
 training_curv_c1,epochmax_c1 = DLtest.training_curves(DIR_LOAD +'finetuning/', args.training_set, 30, Readout = True, layer = 'conv1')
 training_curv_c2,epochmax_c2 = DLtest.training_curves(DIR_LOAD +'finetuning/', args.training_set, 30, Readout = True, layer = 'conv2')
 training_curv_c3,epochmax_c3 = DLtest.training_curves(DIR_LOAD +'finetuning/', args.training_set, 30, Readout = True, layer = 'conv3')

@@ -278,7 +278,7 @@ dis.display_munsells_inv(np.mean(DE_MAT_D65,axis = 0), np.amax(np.mean(DE_MAT_D6
 dis.display_munsells_inv(DE_MAT[0], np.amax(DE_MAT[0]),'$\Delta$E')
 dis.display_munsells_inv(DIST_neighbours_MAT, np.amax(DIST_neighbours_MAT),'Dist Neighbours')
 #dis.display_munsells_inv(normalized_DELTAE,np.amax(normalized_DELTAE),'Normalize $\Delta$E')
-iowua
+
 # Comparison with consistency
 dis.display_munsells_inv(np.std(DE_MAT,axis = 0), np.amax(np.std(DE_MAT,axis = 0)), 'STD $\Delta$E')
 np.corrcoef(np.std(DE_MAT,axis = 0)[1:-1].flatten(), WCS_MAT_CHROMA[1:-1].flatten())
@@ -403,7 +403,7 @@ plt.xlim(-0.05,1)
 fig.savefig(figures_dir_path +'YBGR_distrib_CCI.png', dpi=400)
 plt.show()
 
-dis.DEFINE_PLT_RC(type = 0.5)
+dis.DEFINE_PLT_RC(type = 1)
 
 colors = [tuple([0.8,0.7,0.3]),tuple([0.3,0.4,0.8]),tuple([0.4,0.8,0.4]),tuple([0.7,0.3,0.7])]
 #colors = ['o','b','g','m']
@@ -416,7 +416,7 @@ DICT_CCI = {}
 DICT_CCI['Y'],DICT_CCI['B'], DICT_CCI['G'],DICT_CCI['R'] = np.nanmedian(CCI_Y, axis = (1,2)), np.nanmedian(CCI_B, axis = (1,2)), np.nanmedian(CCI_G, axis = (1,2)), np.nanmedian(CCI_R, axis = (1,2)) 
 dat = pd.DataFrame(DICT_CCI)
 
-fig = plt.figure(figsize = (7,10))
+fig = plt.figure(figsize = (7,6))
 ax = sns.boxplot( data = dat , linewidth = 3, palette = colors, width = 0.85, fliersize = 10)
 test_results = add_stat_annotation(ax, data=dat,
                                    box_pairs=[('Y', 'B'), ('G', 'R'), ('B', 'G')],
@@ -426,7 +426,7 @@ ax.set_yticks([0.6,0.8,1])
 ax.set_ylabel('Median CCI')
 plt.ylim(0.6,1.1)
 #plt.title('ConvNet')
-fig.subplots_adjust(top=0.973,bottom=0.049,left=0.214,right=0.955,hspace=0.2,wspace=0.2)
+fig.subplots_adjust(top=0.973,bottom=0.049,left=0.114,right=0.955,hspace=0.2,wspace=0.2)
 fig.savefig(figures_dir_path +'ConvNet_median_YBGR.png', dpi=400)
 plt.show()
 
@@ -626,8 +626,45 @@ Accu_munscube_wrong_illu = np.array([np.mean(ERRORS[layer]['wrong_illu']['Accu_m
 CCI_D65 = np.array([np.nanmedian(ERRORS[layer]['D65']['CCI'], axis = (1,2,3)) for layer in layers[::-1]])
 DE_D65 = np.array([np.nanmean(ERRORS[layer]['D65']['DE'], axis = (1,2,3)) for layer in layers[::-1]])
 Accu_D65 = np.array([np.nanmean(ERRORS[layer]['D65']['Accu'], axis = (1,2)) for layer in layers[::-1]])
-#Accu5_D65 = np.array([np.nanmean(ERRORS['fc2']['D65']['Accu5'], axis = (1,2)) for layer in layers[::-1]])
-#Accu_munscube_D65 = np.array([np.mean(ERRORS['fc2']['D65']['Accu_munscube'], axis = (1,2)) for layer in layers[::-1]])
+
+
+### Classic color constancy for DE and CCI
+
+DICT_ref = np.load('DICT_ref.npy',allow_pickle = True)[True][0]
+DICT_vK = np.load('DICT_vK.npy',allow_pickle = True)[True][0]
+DICT_noCC = np.load('DICT_noCC.npy',allow_pickle = True)[True][0]
+DICT_CCC = np.load('DICT_CCC.npy',allow_pickle = True)[True][0]
+
+        ###DE
+
+LMS_4illu = np.array([[0.8608155 , 0.87445185, 0.77403174],[0.78124027, 0.84468902, 1.04376177], [0.87937024, 0.95460385, 0.97006115],[0.77854056, 0.79059459, 0.86517277]])
+
+DE_vK = np.linalg.norm(np.moveaxis(DICT_vK['LAB'],0,-2) - DICT_ref['LAB'][:,0,0], axis = 2)
+error_vK = np.mean(DE_vK)
+
+DE_noCC = np.linalg.norm(np.moveaxis(DICT_noCC['LAB'],0,-2) - DICT_ref['LAB'][:,0,0], axis = 2)
+error_noCC = np.mean(DE_noCC)
+
+DE_GW = np.linalg.norm(DICT_CCC['LAB'][:,0,:] - DICT_ref['LAB'][:,0], axis = 0)
+error_GW = np.mean(DE_GW)
+
+DE_WP = np.linalg.norm(DICT_CCC['LAB'][:,1] - DICT_ref['LAB'][:,0], axis = 0)
+error_WP = np.mean(DE_WP)
+
+### We ignored edges cause they performed very badly
+error_edge1 = np.mean(np.linalg.norm(DICT_CCC['LAB'][:,2] - DICT_ref['LAB'][:,0], axis = 0))
+error_edge2 = np.mean(np.linalg.norm(DICT_CCC['LAB'][:,3] - DICT_ref['LAB'][:,0], axis = 0))
+
+DE_contrast = np.linalg.norm(DICT_CCC['LAB'][:,4] - DICT_ref['LAB'][:,0], axis = 0)
+error_contrast = np.mean(DE_contrast)
+
+        #CCI
+
+CCI_noCC = np.median(1 - DE_noCC/DE_noCC)
+CCI_vK = np.median(1 - DE_vK/DE_noCC)
+CCI_GW = np.median(1 - DE_GW/DE_noCC)
+CCI_WP = np.median(1 - DE_WP/DE_noCC)
+CCI_contrast = np.median(1 - DE_contrast/DE_noCC)
 
 fig = plt.figure(figsize = (6,6))
 ax1 = fig.add_subplot(111)
@@ -671,30 +708,33 @@ fig.tight_layout()
 fig.savefig(figures_dir_path + 'Accuracy_munscube.png', dpi=400)
 plt.show()
 
-fig = plt.figure(figsize = (6,6))
+fig = plt.figure(figsize = (9,6))
 ax1 = fig.add_subplot(111)
-ax1.bar([1,2,3,4,5, 6],[np.mean(DE_normal, axis = -1)[-1], np.mean(DE_no_patch,axis = -1)[-1], np.mean(DE_wrong_illu, axis = -1)[-1], np.mean(DE_no_back, axis = -1)[-1], np.mean(DE_D65, axis = -1)[-1], predicted_errors['DE'].mean()],color = ['k',[0.4,0.7,0.8],[0.4,0.8,0.4],[0.7,0.8,0.4],[0.8,0.4,0.4],'grey'],linewidth = 6)
-ax1.set_xticks([1,2,3,4,5, 6])
+ax1.bar([1,2,3,4,5, 6, 7, 8], [np.mean(DE_normal, axis = -1)[-1], np.mean(DE_no_patch,axis = -1)[-1], np.mean(DE_wrong_illu, axis = -1)[-1], error_vK, error_GW, error_WP, error_contrast, error_noCC ],color = ['k',[0.4,0.7,0.8],[0.4,0.8,0.4],[0.5,0.5,0.5],[0.3,0.3,0.3],[0.3,0.3,0.3],[0.3,0.3,0.3],'k'],linewidth = 6)
+ax1.set_xticks([1,2,3,4,5,  6, 7, 8, 8])
 ax1.set_xticklabels([])
 plt.xticks(fontsize = 21)
-ax1.set_xticklabels(['CC$_{normal}$','CC$_{no patch}$','CC$_{wrong back}$','CC$_{no back}$','D65$_{normal}$', 'naive'], rotation = 45)
+ax1.set_xticklabels(['CC$_{normal}$','CC$_{no patch}$','CC$_{wrong back}$', 'perfect\nvK','GW','WP','ASM', 'no CC'], rotation = 45)
 #plt.yticks(fontsize = 14)
-plt.yticks(np.arange(0,41,10),fontsize = 21)
+plt.yticks(np.arange(0,21,5),fontsize = 21)
 ax1.set_ylabel('$\Delta$E',fontsize = 25)
 fig.tight_layout()
-fig.savefig(figures_dir_path + 'DeltaE.png', dpi=400)
+fig.savefig(figures_dir_path + 'DeltaE.png', dpi=600)
 plt.show()
 
-fig = plt.figure(figsize = (6,6))
+
+
+fig = plt.figure(figsize = (9,6))
 ax1 = fig.add_subplot(111)
-ax1.bar([1,2,3,4,5,6],[np.mean(CCI_normal, axis = -1)[-1], np.mean(CCI_no_patch,axis = -1)[-1], np.mean(CCI_wrong_illu, axis = -1)[-1], np.mean(CCI_no_back, axis = -1)[-1], np.mean(CCI_D65, axis = -1)[-1], predicted_errors['CCI'].mean()],color = ['k',[0.4,0.7,0.8],[0.4,0.8,0.4],[0.7,0.8,0.4],[0.8,0.4,0.4],'grey'],linewidth = 6)
-ax1.set_xticks([1,2,3,4,5,6])
+ax1.bar([1,2,3,4,5, 6, 7, 8], [np.mean(CCI_normal, axis = -1)[-1], np.mean(CCI_no_patch,axis = -1)[-1], np.mean(CCI_wrong_illu, axis = -1)[-1], CCI_vK, CCI_GW, CCI_WP, CCI_contrast, CCI_noCC + 0.001],color = ['k',[0.4,0.7,0.8],[0.4,0.8,0.4],[0.5,0.5,0.5],[0.3,0.3,0.3],[0.3,0.3,0.3],[0.3,0.3,0.3],'k'], linewidth = 6)
+ax1.set_xticks([1,2,3,4,5,6, 7, 8])
 ax1.set_xticklabels([])
 plt.xticks(fontsize = 21)
-ax1.set_xticklabels(['CC$_{normal}$','CC$_{no patch}$','CC$_{wrong back}$','CC$_{no back}$','D65$_{normal}$', 'naive'], rotation = 45)
+ax1.set_xticklabels(['CC$_{normal}$','CC$_{no patch}$','CC$_{wrong back}$', 'perfect\nvK','GW','WP','ASM', 'no CC'], rotation = 45)
 #plt.yticks(fontsize = 14)
-plt.yticks(np.arange(-4.5,1.1,2),fontsize = 21)
+plt.yticks(np.arange(-0.5,1.1,0.5),fontsize = 21)
 ax1.set_ylabel('CCI',fontsize = 25)
+plt.ylim(-0.5, 1)
 fig.tight_layout()
 fig.savefig(figures_dir_path + 'CCI.png', dpi=800)
 plt.show()
@@ -730,7 +770,7 @@ ax1.set_xticklabels(['RC1','RC2','RC3','RF1','RF2'])
 ax1.set_ylabel('Median CCI')
 plt.legend()
 fig.tight_layout()
-fig.savefig(figures_dir_path + 'CCI_fost_readout.png', dpi=400)
+fig.savefig(figures_dir_path + 'CCI_fost_readout.png', dpi=600)
 plt.show()
 
 fig = plt.figure()

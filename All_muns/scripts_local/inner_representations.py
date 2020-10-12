@@ -111,7 +111,7 @@ def compute_and_display_MDS(layer,save_path):
 	RESULTLAYER = [algos.MDS(DM_layer_all[i])[0] for i in range(len(DM_layer_all))]
 	EXPLAINED = [algos.princomp(result)[-1] for result in RESULTLAYER]
 
-	#dis.scatter_MDS_vert(RESULTlayer[:,:4],' ', save_path + '3D.png',save_path +'2D.png',RGB_muns)
+	dis.scatter_MDS_vert(RESULTlayer[:,:4],' ', save_path + '3D.png',save_path +'2D.png',RGB_muns)
 	return RESULTlayer, stress_layer, explained, score, RESULTLAYER, EXPLAINED
 
 # In[9]: LOAD ACTIVATIONS color constant
@@ -158,7 +158,9 @@ MUNSELLS_LGN = LMS2Opp(MUNSELLS_LMS-MUNSELLS_LMS.mean(axis = 0))
 
 conditions = ['normal','no_patch', 'wrong_illu', 'no_back', 'D65']
 
-net_name = 'ResCC'
+net_name = 'ConvCC'
+
+# Note that ConvCC is DeepCC
 
 if net_name == 'ConvCC':
         nb_models = 10
@@ -205,7 +207,7 @@ for layer in layers[::-1]:
         input_to_mds = activations.reshape(nb_models, 330,num_samples,-1)
         
         
-        result_MDS, stress, explained, score_MDS, RESULTALL_MDS, EXPLAINEDALL = compute_and_display_MDS(input_to_mds, figures_dir_path +'MDS/'+layer +'_' + condition)
+        result_MDS, stress, explained, score_MDS, RESULTALL_MDS, EXPLAINEDALL = compute_and_display_MDS(input_to_mds, figures_dir_path +'MDS/'+layer + '_' + net_name +'_' + condition)
         
         _,TRANSFO_LAB[layer][condition] = extract_procrustes( WCS_LAB.T, result_MDS[:,:3] )
         PROCRUSTES_LAB[layer][condition],_ = extract_procrustes( WCS_LAB.T, RESULTALL_MDS, ismean = False )
@@ -232,30 +234,54 @@ for layer in layers[::-1]:
 
 #print('The best fit was obtained for layer %i with a value of %d' %([PROCRUSTES_MUNS[layer]['normal'] for layer in layers[::-1]]))
 
+R2_ResCC = np.array([49.76828352335517, 55.56546793400381, 13.244787088220646]) # Values found for ResNet with this scripts
+R2std_ResCC = np.array([11.10055161510222, 7.730492604935338, 5.166816440227518])
+R2_ConvCC = np.array([66.41759441306412, 68.38395515569066, 77.07064225894631, 88.24782239278332, 71.28941056240583]) # Values found for DeepCC with this algo
+R2std_ConvCC = np.array([6.308441736840685, 4.482985829585884, 3.2047531799331463, 2.5976015170400473, 7.444809053015025])
+
+
+
 dis.DEFINE_PLT_RC(type = 1)
 
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-#ax1.errorbar(range(1,len(layers)+1),[np.array(PROCRUSTES_LAB[layer]['normal']).mean() for layer in layers[::-1]],'k', label = 'CIELab')
-#ax1.errorbar(range(1,len(layers)+1),[np.array(PROCRUSTES_LGN[layer]['normal']).mean() for layer in layers[::-1]],color = [0.5,0.5,0.5], label = 'LGN')
-ax1.errorbar(range(1,len(layers)+1),[np.array(PROCRUSTES_MUNS[layer]['normal']).mean() for layer in layers[::-1]], yerr=[np.array(PROCRUSTES_MUNS[layer]['normal']).std() for layer in layers[::-1]], color = 'k', label = 'Munsell')
-ax1.errorbar(range(1,len(layers)+1),[np.array(PROCRUSTES_LMS[layer]['normal']).mean() for layer in layers[::-1]], yerr = [np.array(PROCRUSTES_LMS[layer]['normal']).std() for layer in layers[::-1]],color = [0.5,0.5,0.5], label = 'LMS')
-#ax1.errorbar(range(1,len(layers)+1), [np.array(AFFINE_MUNS[layer]['normal']).mean() for layer in layers[::-1]], yerr = [np.array(AFFINE_MUNS[layer]['normal']).std() for layer in layers[::-1]],color = 'k',ls = '--', label = 'Affine Munsell')
-#ax1.errorbar(range(1,len(layers)+1), [np.array(AFFINE_LMS[layer]['normal']).mean() for layer in layers[::-1]], yerr = [np.array(AFFINE_LMS[layer]['normal']).std() for layer in layers[::-1]], color = [0.5,0.5,0.5],ls = '--', label = 'Affine LMS')
-ax1.set_xticks(range(1,len(layers)+1))
-ax1.set_xticklabels(layers[::-1])
-plt.xlabel('Layers')
-plt.ylabel('Variance explained (%)')
-plt.ylim(0,100)
-plt.title(net_name)
+#ax1.errorbar(range(1,len(layers)+1),[np.array(PROCRUSTES_LAB[layer]['normal']).mean() for layer in layers[::-1]],yerr=[np.array(PROCRUSTES_LAB[layer]['normal']).std() for layer in layers[::-1]],color = 'k', label = 'CIELab')
+ax1.errorbar(range(1,len(layers)+1), R2_ConvCC, yerr=R2std_ConvCC, color = 'grey', label = 'DeepCC')
+ax1.errorbar(range(1,len(layers)+1,2), R2_ResCC, yerr=R2std_ResCC, color = 'black', label = 'ResCC')
+ax2 = ax1.twiny()
+ax2.set_xlim(ax1.get_xlim())
+ax1.set_xticks([1,3,5])
+ax1.set_xticklabels(['layer1', 'layer1', 'layer3'])
+ax1.set_xlabel('Layers ResCC')
+ax2.set_xticks(range(1,len(layers)+1))
+ax2.set_xticklabels(layers[::-1], color = [0.3, 0.3, 0.3])
+ax2.set_xlabel('Layers DeepCC', color = [0.3, 0.3, 0.3])
+ax1.set_ylabel('Variance explained (%)')
+ax1.set_ylim(0,100)
+#plt.title(net_name)
 #plt.ylim(0,0.4)
 #ax1.set_yticks(np.arange(0,0.41,0.2))
 #ax1.set_ylabel('Median CCI')
-plt.legend()
-fig.tight_layout()
-fig.savefig(figures_dir_path +net_name + '_procrustes.png', dpi=400)
+ax1.legend()
+fig.subplots_adjust(top=0.865,bottom=0.14,left=0.149,right=0.952,hspace=0.2,wspace=0.2)
+fig.savefig(figures_dir_path + 'allmodels_procrustes.png', dpi=400)
 plt.show()
 
+dis.DEFINE_PLT_RC(type = 1)
+
+fig = plt.figure()
+ax1 = fig.add_subplot(111)
+ax1.errorbar(range(1,len(layers)+1), R2_ConvCC, yerr=R2std_ConvCC, color = 'k', label = 'DeepCC')
+#ax1.errorbar(range(1,len(layers)+1,2), R2_ResCC, yerr=R2std_ResCC, color = 'black', label = 'ResCC')
+ax1.set_xticks(range(1,len(layers)+1))
+ax1.set_xticklabels(layers[::-1])
+ax1.set_xlabel('Layers')
+ax1.set_ylabel('Variance explained (%)')
+ax1.set_ylim(0,100)
+#ax1.legend()
+fig.subplots_adjust(top=0.865,bottom=0.14,left=0.149,right=0.952,hspace=0.2,wspace=0.2)
+fig.savefig(figures_dir_path +net_name + '_procrustes.png', dpi=400)
+plt.show()
 
 fig = plt.figure()
 ax1 = fig.add_subplot(111)

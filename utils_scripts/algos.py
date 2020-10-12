@@ -87,6 +87,38 @@ def correlations_layers(layer, mod_axis = 0, mean_axis = 2):
 		CORR[i] = np.corrcoef(mean_layer[i])
 	return CORR
 
+def similarity_layers(layer, mod_axis = 0, mean_axis = 2):
+	'''
+	Similarity of activations along a chosen axis within a given layer.
+
+	Inputs:
+		- layer: matrix of activations. First axis is for the model training instance
+		  (10 models were trained in my case.)
+		- main_axis: axis corresponding to the activations dim we want to correlates
+		  (e.g. object, munsells)
+		- mean_axis: axis along which we will average the activation to have a mean activation pattern.
+		  Can also be a list (e.g (1,2))
+	Outputs:
+		- DIST: Dissimilarity matrix.
+	'''
+
+	if len(layer.shape) < 3:
+		layer = layer[np.newaxis,:]
+	layer = np.moveaxis(layer, mod_axis,0)
+	#import pdb; pdb.set_trace()
+	layer = np.moveaxis(layer, mean_axis,0)
+	layer = layer/np.nanmax(np.absolute(layer),axis = 0)
+	#layer = layer/np.nanstd(layer,axis = 0)
+	layer = np.moveaxis(layer, 0,-1)
+	mean_layer = np.nanmean(layer, axis = -1)
+	mean_layer[~np.isfinite(mean_layer)] = 0
+	DIST = np.zeros((len(layer), layer.shape[1], layer.shape[1]))
+	for i in range(len(layer)):
+	        for muns in range(layer.shape[1]):
+	                for muns2 in range(layer.shape[1]):
+		                DIST[i,muns,muns2] = np.linalg.norm(mean_layer[i,muns] - mean_layer[i,muns2])
+	#import pdb; pdb.set_trace()                
+	return DIST
 
 
 def MDS(D):
@@ -132,7 +164,7 @@ def MDS(D):
     L  = np.diag(np.sqrt(evals[w]))
     V  = evecs[:,w]
     Y  = V.dot(L)
-
+    #import pdb; pdb.set_trace()
     return Y, evals
 
 

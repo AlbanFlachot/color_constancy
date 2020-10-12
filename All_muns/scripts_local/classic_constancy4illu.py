@@ -67,8 +67,8 @@ mat_classic_cc_mat = ((mat_classic_cc_mat.T)/np.mean((mat_classic_cc_mat.T), axi
 
 list_WCS_labels = algos.compute_WCS_Munsells_categories()
 
-mat_classic_cc_WCS = mat_classic_cc_mat[list_WCS_labels]
-im_paths_mat_WCS = im_paths_mat[list_WCS_labels]
+mat_classic_cc_WCS = mat_classic_cc_mat
+im_paths_mat_WCS = im_paths_mat
 
  
 
@@ -116,7 +116,7 @@ def scaling(X, Y):
     return (X - minX)*((maxY-minY)/(maxX-minX)) + minY
 
 def computations_chromaticities(im_paths_mat, illus, shape, MUNSELLS_LMS, max_pxl, correction = True , algo = 0):
-    CHROMA_OBJ_MEAN, CHROMA_OBJ_LUM, CHROMA_OBJ_MEDIAN = predicted_chromaticity(im_paths_mat,illus, shape, max_pxl, correction)
+    CHROMA_OBJ_MEAN, CHROMA_OBJ_LUM, CHROMA_OBJ_MEDIAN = comp.predicted_chromaticity(im_paths_mat,illus, shape, max_pxl, correction)
 
     chroma_mean = scaling(np.mean(CHROMA_OBJ_MEAN, axis = (2)), MUNSELLS_LMS)
     
@@ -133,46 +133,11 @@ def computations_chromaticities(im_paths_mat, illus, shape, MUNSELLS_LMS, max_px
     return {'mean_LMS': CHROMA_OBJ_MEAN, 'median_LMS': CHROMA_OBJ_MEDIAN, 'bright_LMS': CHROMA_OBJ_LUM, 'XYZ': PREDICTION_XYZ, 'LAB': PREDICTION_LAB}
 
 
-#path2obj = '/home/alban/mnt/DATA/project_color_constancy/classic_constancy/obj_segmented/munsell_%i_WCS_4illu.npy'
-#CHROMA_OBJ_MEAN, CHROMA_OBJ_LUM, CHROMA_OBJ_MEDIAN = comp.Obj_chromaticity(path2obj, (330,4,10,5,3), MUNSELLS_LMS)
 
-#computations_chromaticities(im_paths_mat, mat_classic_cc_mat, (330,4,10,5,3), MUNSELLS_LMS, max_pxl)
-
-#PREDICTION_XYZ = CT.LMS2XYZ(CHROMA_OBJ_MEDIAN).T
-#PREDICTION_LAB = CT.XYZ2Lab(PREDICTION_XYZ, white = wh)
-#np.save('PREDICTION_LAB_WCS_mean.npy',PREDICTION_LAB)
-#PREDICTION_LAB = np.load('PREDICTION_LAB_lumnorm_mean.npy')
-
-#dis.scatter_LAB(PREDICTION_LAB[:,-1,0,0,:], RGB_WCS)
-#DELTAE = EM.DE_error_all(PREDICTION_LAB.T, MUNS_LAB.T)
-#np.mean(DELTAE,axis = (0,1,2))
-#np.median(DELTAE,axis = (0,2,-1))
-
-#PREDICTION_XYZ = CT.LMS2XYZ(CHROMA_OBJ_LUM).T
-#PREDICTION_LAB = CT.XYZ2Lab(PREDICTION_XYZ, white = wh)
-#np.save('PREDICTION_LAB_WCS_lum.npy',PREDICTION_LAB)
-
-#dis.scatter_LAB(PREDICTION_LAB[:,-1,0,0,:], RGB_WCS)
-#DELTAE = EM.DE_error_all(PREDICTION_LAB.T, MUNS_LAB.T)
-#np.mean(DELTAE,axis = (0,1,2))
-#np.median(DELTAE,axis = (0,2,-1))
-
-#np.median(DELTAE,axis = (0,2))
-#np.amin(DELTAE)
-
-
-
-# In[9]: ref: chromaticity under D65
-
-#DICT_ref = computations_chromaticities(im_paths_mat_WCS[:,3].reshape((nb_test_muns,1,nb_exp)), np.array([1,1,1]), (nb_test_muns, 1, nb_exp,1,3), MUNSELLS_LMS, max_pxl, correction = False)
-
-#np.save('DICT_ref.npy', DICT_ref)
 
 DICT_ref = np.load('DICT_ref.npy',allow_pickle = True)[True][0]
 
-#np.median(np.absolute(DICT_ref['LAB'][:,0,1] - MUNS_LAB), axis = (1))
-#np.mean(np.mean(DICT_ref['LAB'],axis =(1,2)) - MUNS_LAB, axis = -1)
-#np.mean(np.median(DICT_ref['LAB'],axis =(1,2)) - MUNS_LAB, axis = -1)
+
 
 
 # In[9]: Controle: perfect estimation illu with von kries
@@ -186,86 +151,70 @@ DICT_vK = np.load('DICT_vK.npy',allow_pickle = True)[True][0]
 
 print('Error von Kries:')
 print(np.median(np.linalg.norm(DICT_vK['LAB'][:,:,0] - DICT_ref['LAB'][:,:,0], axis = 0)))
-error_vK = np.median(np.linalg.norm(DICT_vK['LAB'] - DICT_vK['LAB'][:,0], axis = 0))
+error_vK = np.median(np.linalg.norm(DICT_vK['LAB'][:,:,0] - DICT_ref['LAB'][:,:,0], axis = 0))
 
 # In[9]: Controle: No color constancy
 
-DICT_noCC = computations_chromaticities(im_paths_mat_WCS[:,[0,1,2,4]], np.array([1,1,1]), (nb_test_muns, 4, nb_exp, 1,3), MUNSELLS_LMS, max_pxl)
-np.mean(DICT_noCC['LAB'][:,0,0] - MUNS_LAB, axis = (1))
+#DICT_noCC = computations_chromaticities(im_paths_mat_WCS[:,[0,1,2,4]], np.array([1,1,1]), (nb_test_muns, 4, nb_exp, 1,3), MUNSELLS_LMS, max_pxl)
+#np.mean(DICT_noCC['LAB'][:,0,0] - MUNS_LAB, axis = (1))
+
+DICT_noCC = np.load('DICT_noCC.npy',allow_pickle = True)[True][0]
 
 print('Error without illuminant correction:')
 print(np.median(np.linalg.norm(DICT_noCC['LAB'] - DICT_ref['LAB'], axis = 0)))
 
 error_noCC = np.median(np.linalg.norm(DICT_noCC['LAB'] - DICT_ref['LAB'], axis = 0))
 
-np.save('DICT_noCC.npy', DICT_noCC)
+#np.save('DICT_noCC.npy', DICT_noCC)
 
 # In[9]: classic color constancy
 
 
-DICT_CCC = computations_chromaticities(im_paths_mat_WCS[:,[0,1,2,4]], mat_classic_cc_mat[:,[0,1,2,4]], (nb_test_muns,4,nb_exp,nb_algos,3), MUNSELLS_LMS, max_pxl)
+#DICT_CCC = computations_chromaticities(im_paths_mat_WCS[:,[0,1,2,4]], mat_classic_cc_mat[:,[0,1,2,4]], (nb_test_muns,4,nb_exp,nb_algos,3), MUNSELLS_LMS, max_pxl)
 
-np.save('DICT_CCC.npy',DICT_CCC)
+#np.save('DICT_CCC.npy',DICT_CCC)
+
+DICT_CCC = np.load('DICT_CCC.npy',allow_pickle = True)[True][0]
 
 np.mean(DICT_noCC['LAB'][:,0,0] - MUNS_LAB, axis = (1))
 
 print('Error grey world:')
-print(np.median(np.linalg.norm(DICT_CCC['LAB'][:,0,:] - DICT_vK['LAB'][:,0], axis = 0)))
-error_GW = np.median(np.linalg.norm(DICT_CCC['LAB'][:,0,:] - DICT_vK['LAB'][:,0], axis = 0))
+print(np.median(np.linalg.norm(DICT_CCC['LAB'][:,0,:] - DICT_ref['LAB'][:,0], axis = 0)))
+error_GW = np.median(np.linalg.norm(DICT_CCC['LAB'][:,0,:] - DICT_ref['LAB'][:,0], axis = 0))
 
 print('Error white patch:')
-print(np.median(np.linalg.norm(DICT_CCC['LAB'][:,1] - DICT_vK['LAB'][:,0], axis = 0)))
-error_WP = np.median(np.linalg.norm(DICT_CCC['LAB'][:,1] - DICT_vK['LAB'][:,0], axis = 0))
+print(np.median(np.linalg.norm(DICT_CCC['LAB'][:,1] - DICT_ref['LAB'][:,0], axis = 0)))
+error_WP = np.median(np.linalg.norm(DICT_CCC['LAB'][:,1] - DICT_ref['LAB'][:,0], axis = 0))
 
 print('Error edge1:')
-print(np.median(np.linalg.norm(DICT_CCC['LAB'][:,2] - DICT_vK['LAB'][:,0], axis = 0)))
-error_edge1 = np.median(np.linalg.norm(DICT_CCC['LAB'][:,2] - DICT_vK['LAB'][:,0], axis = 0))
+print(np.median(np.linalg.norm(DICT_CCC['LAB'][:,2] - DICT_ref['LAB'][:,0], axis = 0)))
+error_edge1 = np.median(np.linalg.norm(DICT_CCC['LAB'][:,2] - DICT_ref['LAB'][:,0], axis = 0))
 
 
 print('Error edge2:')
-print(np.median(np.linalg.norm(DICT_CCC['LAB'][:,3] - DICT_vK['LAB'][:,0], axis = 0)))
-error_edge2 = np.median(np.linalg.norm(DICT_CCC['LAB'][:,3] - DICT_vK['LAB'][:,0], axis = 0))
+print(np.median(np.linalg.norm(DICT_CCC['LAB'][:,3] - DICT_ref['LAB'][:,0], axis = 0)))
+error_edge2 = np.median(np.linalg.norm(DICT_CCC['LAB'][:,3] - DICT_ref['LAB'][:,0], axis = 0))
 
 print('Error contrast:')
-print(np.median(np.linalg.norm(DICT_CCC['LAB'][:,4] - DICT_vK['LAB'][:,0], axis = 0)))
-error_contrast = np.median(np.linalg.norm(DICT_CCC['LAB'][:,4] - DICT_vK['LAB'][:,0], axis = 0))
-
+print(np.median(np.linalg.norm(DICT_CCC['LAB'][:,4] - DICT_ref['LAB'][:,0], axis = 0)))
+error_contrast = np.median(np.linalg.norm(DICT_CCC['LAB'][:,4] - DICT_ref['LAB'][:,0], axis = 0))
 
 
 fig = plt.figure(figsize = (6,6))
 ax1 = fig.add_subplot(111)
-ax1.bar([1,2,3,4,5,6],[0, error_GW, error_WP, error_edge2, error_contrast, error_noCC], color = [[0.5,0.5,0.5],[0.3,0.3,0.3],[0.3,0.3,0.3],[0.3,0.3,0.3],[0.3,0.3,0.3],'k'],linewidth = 4)
+ax1.bar([1,2,3,4,5,6],[error_vK, error_GW, error_WP, error_edge2, error_contrast, error_noCC], color = [[0.5,0.5,0.5],[0.3,0.3,0.3],[0.3,0.3,0.3],[0.3,0.3,0.3],[0.3,0.3,0.3],'k'],linewidth = 4)
 ax1.set_xticks([1,2,3,4,5,6])
 ax1.set_xticklabels([])
 plt.xticks(fontsize = 21)
 #plt.yticks(fontsize = 14)
 plt.yticks(np.arange(0,20,5),fontsize = 21)
 ax1.set_ylabel('$\Delta$E',fontsize = 25)
-ax1.set_xticklabels(['perfect\nCC','GW','WP','edge 2','contrast', 'no CC'], rotation = 45)
+ax1.set_xticklabels(['perfect\nvK','GW','WP','edge 2','contrast', 'no CC'], rotation = 45)
 fig.tight_layout()
 #fig.savefig(figures_dir_path + 'Accuracy.png', dpi=400)
 plt.show()
 
-#path2save_gp = '/home/alban/mnt/DATA/project_color_constancy/classic_constancy/obj_segmented/munsell_%i_GP.npy'
-#OBJ_GP = comp.from_img_2_obj(im_paths_mat, path2save_gp, mat_classic_cc_mat, (330,4,10,1,3),'/home/alban/mnt/awesome/alban/project_color_constancy/PYTORCH/WCS/train_centered/classic_color_constancy/corrected_4_illu/')
 
-#path2obj = '/home/alban/mnt/DATA/project_color_constancy/classic_constancy/obj_segmented/munsell_%i_GP.npy'
-#CHROMA_OBJ_MEAN_GP, CHROMA_OBJ_LUM_GP, CHROMA_OBJ_MEDIAN_GP = comp.Obj_chromaticity(path2obj, (330,4,10,1,3), MUNSELLS_LMS, max_pxl)
-
-#computations_chromaticities(im_paths_mat, mat_classic_cc_mat, (330,4,10,1,3), MUNSELLS_LMS, max_pxl)
-
-#PREDICTION_XYZ_GP = CT.LMS2XYZ(CHROMA_OBJ_MEAN_GP).T
-#PREDICTION_LAB_GP = CT.XYZ2Lab(PREDICTION_XYZ_GP,white = wh)
-
-#np.save('PREDICTION_LAB_mean_GP.npy',PREDICTION_LAB_GP)
-#PREDICTION_LAB_GP = np.load('PREDICTION_LAB_mean_GP.npy')
-
-#dis.scatter_LAB(PREDICTION_LAB_GP[:,-1,5,0,:], RGB_WCS)
-#DELTAE_GP = EM.DE_error_all(PREDICTION_LAB_GP.T, MUNS_LAB.T)
-#np.mean(DELTAE_GP,axis = (0,2))
-#np.median(DELTAE_GP,axis = (0,2))
-
-# In[9]: Controle: under D65
 
 import glob
 path_images_D65 = glob.glob('/home/alban/mnt/sapphire/data/alban/project_color_constancy/DATA/PNG/masks_5illu/object*/object*_illu_D_65_1.npy')

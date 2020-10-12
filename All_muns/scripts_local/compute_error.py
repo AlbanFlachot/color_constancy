@@ -141,7 +141,7 @@ def computeErrors(path2activations, NetType, training_set, Testing_type, testing
         OUT_soft = OUT_soft[:,:,:4]
 
     # Compute Delta E ------------------------------------------------------------------------------------
-    DE = EM.WEIGHTED_PREDICTION_LAB(OUT_soft, test_WCS = (testing_set =='WCS'), space = 'CIELab')
+    DE = EM.WEIGHTED_PREDICTION_LAB(OUT_soft, test_WCS = (testing_set =='WCS'), space = 'CIELab', weighted = False)
 
     DE_3D = EM.PREDICTION_3D(OUT_soft.argmax(axis = -1), test_WCS = (testing_set =='WCS'), space = 'Munsell')
     DE_3D = EM.error_muns(DE_3D)

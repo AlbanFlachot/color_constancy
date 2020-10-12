@@ -17,32 +17,29 @@ def XYZ2Lab(XYZ,white = 0.0):
     Outputs:
         Lab: Matrix of CIELab values
     '''
-	if XYZ.shape[0] != 3:
-		raise ValueError('Firt dimension of XYZ must be 3')
+	if XYZ.shape[-1] != 3:
+		raise ValueError('First dimension of XYZ must be 3')
 	if white.shape == 1:
 		raise ValueError('Please define the white point')
-
+	
 	#XYZtemp = XYZ.reshape(3,-1)
-
+	
 	epsi = 0.008856
 	K = 903.3
-
-	Xr = XYZ[0]/white[0]
-	Yr = XYZ[1]/white[1]
-	Zr = XYZ[2]/white[2]
-	fx = Xr**(1./3.)
-	fy = Yr**(1./3.)
-	fz = Zr**(1./3.)
-
-	fx[Xr<epsi] = (K*Xr[Xr<epsi]+16)/116
-	fy[Yr<epsi] = (K*Yr[Yr<epsi]+16)/116
-	fz[Zr<epsi] = (K*Zr[Zr<epsi]+16)/116
-
-	Lab = np.zeros(XYZ.shape)
-	Lab[0] = 116 * fy - 16
-	Lab[1] = 500 * (fx - fy)
-	Lab[2] = 200 * (fy - fz)
+	
+	XYZr = (XYZ/white)
+	Fxyz = XYZr**(1./3.) 
+	Fxyz[XYZr<epsi] = (K*XYZr[XYZr<epsi] + 16)/116
+	
+	Fxyz_flat = Fxyz.reshape((-1,3))
+	Lab = np.zeros(Fxyz_flat.shape)
+	Lab[:,0] = 116 * Fxyz_flat[:,1] - 16
+	Lab[:,1] = 500 * (Fxyz_flat[:,0] - Fxyz_flat[:,1])
+	Lab[:,2] = 200 * (Fxyz_flat[:,1] - Fxyz_flat[:,2])
 	return Lab
+
+
+
 
 def LMS2XYZ(LMS):
     '''

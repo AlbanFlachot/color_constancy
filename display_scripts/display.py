@@ -119,6 +119,9 @@ def scatter_MDS(RESULT,title,path1,path2,RGB_muns, LABELS = ['DIM 1','DIM 2','DI
     plt.close()
 
 def scatter_MDS_vert(RESULT,title,path1,path2,RGB_muns, LABELS = ['DIM 1','DIM 2','DIM 3', 'DIM4'], display = True):
+    
+    plt.rc('xtick',labelsize=14)
+    plt.rc('ytick',labelsize=14)
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     ax.scatter(RESULT[:,0], RESULT[:,1], RESULT[:,2], marker='o',c = RGB_muns)
@@ -138,14 +141,18 @@ def scatter_MDS_vert(RESULT,title,path1,path2,RGB_muns, LABELS = ['DIM 1','DIM 2
     ax1.scatter(RESULT[:,0], RESULT[:,1], marker='o',c = RGB_muns)
     ax1.set_xlabel(LABELS[0],fontsize = 15)
     ax1.set_ylabel(LABELS[1],fontsize = 15)
-    #ax1.set_xticks(np.arange(-0.5,0.6,0.5))
-    #ax1.set_yticks(np.arange(-0.5,0.6,0.5))
+    xlim = np.absolute([np.round(RESULT[:,0].min(),1)-0.1, np.round(RESULT[:,0].max(),1)+0.1]).max()
+    ax1.set_xticks(np.arange(-xlim, xlim+0.1, xlim))
+    ylim = np.absolute((np.round(RESULT[:,1].min(),1)-0.1, np.round(RESULT[:,1].max(),1)+0.1)).max()
+    ax1.set_yticks(np.arange(-ylim, ylim+0.1, ylim))
     ax2 = fig.add_subplot(212)
     ax2.scatter(RESULT[:,1], RESULT[:,2], marker='o',c = RGB_muns)
     ax2.set_xlabel(LABELS[1],fontsize = 15)
-    #ax2.set_ylabel(LABELS[2],fontsize = 15)
-    ax2.set_xticks(np.arange(-0.5,0.6,0.5))
-    ax2.set_yticks(np.arange(-0.5,0.6,0.5))
+    ax2.set_ylabel(LABELS[2],fontsize = 15)
+    xlim = np.absolute([np.round(RESULT[:,1].min(),1)-0.1, np.round(RESULT[:,1].max(),1)+0.1]).max()
+    ax2.set_xticks(np.arange(-xlim, xlim+0.1, xlim))
+    ylim = np.absolute((np.round(RESULT[:,2].min(),1)-0.1, np.round(RESULT[:,2].max(),1)+0.1)).max()
+    ax2.set_yticks(np.arange(-ylim, ylim+0.1, ylim))
     #fig.text(0.5,0.94,title,ha='center',fontsize = 18)
     fig.tight_layout()
     if display:

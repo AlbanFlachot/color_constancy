@@ -10,9 +10,9 @@ Created on Thu Feb 28 14:24:13 2019
 
 from __future__ import print_function, division
 import torch
-
+import pickle
 import numpy as np
-
+import os
 # Ignore warnings
 import warnings
 warnings.filterwarnings("ignore")
@@ -26,11 +26,6 @@ from DL_testing_functions_scripts import DL_testing_functions as DLtest
 from utils_scripts import algos
 from DL_training_functions_scripts import MODELS as M
 
-
-# CUDA for PyTorch
-use_cuda = torch.cuda.is_available()
-device = torch.device("cuda:0" if use_cuda else "cpu")
-#cudnn.benchmark = True
 
 
 # In[9]: path to files
@@ -65,13 +60,21 @@ parser.add_argument('--testing_type', default='4illu', type=str, metavar='str',
                     help='to distiguish between the illuminant kind')
 
 parser.add_argument('--testing_condition', default='normal', type=str, metavar='str',
-                    help='to distiguish between the different conditions (nromal, no patch, wrong patch..)')
+                    help='to distiguish between the different conditions (nromal, no patch, wrong back..)')
 
 parser.add_argument('--model', default='Ref', type=str, metavar='str',
                     help='to distiguish between the different models')
 
 args = parser.parse_args()
 
+
+
+# CUDA for PyTorch
+use_cuda = torch.cuda.is_available()
+device = torch.device("cuda:0" if use_cuda else "cpu")
+#cudnn.benchmark = True
+
+#%%
 
 if args.testing_set == 'WCS':
     nb_obj = 330
@@ -90,6 +93,11 @@ elif args.testing_type == 'D65':
 
 
 list_WCS_labels = algos.compute_WCS_Munsells_categories() # import idxes of WCS munsells among the 1600
+
+with open("/mnt/juggernaut/alban/project_color_constancy/PYTORCH/WCS/train_centered/WCS/ima_empty_scenes.txt", "rb") as fp:   # Unpickling
+        val_im_empty_scenes = pickle.load(fp)
+
+val_im_empty_scenes = ['/mnt/juggernaut' + i[5:] for i in val_im_empty_scenes]
 
 DIR_LOAD = args.load_dir
 
@@ -138,10 +146,14 @@ Rf2.to(device)
 Readout_nets = (Rc1, Rc2, Rc3, Rf1, Rf2)
 
 if args.testing_type == '4illu':
-	test_addr = '/home/alban/project_color_constancy/TRAINING/DATA/PNG/WCS/Test_4_illu_centered/'
+	test_addr = '/mnt/juggernaut/alban/project_color_constancy/TRAINING/DATA/PNG/WCS/masks_centered/4illu/'
 elif args.testing_type == 'D65':
 	ILLU = np.load(npy_dir_path + 'ILLU.npy')
 	test_addr = '/home/alban/project_color_constancy/TRAINING/DATA/PNG/WCS/validation_D65_centered/'
+elif args.testing_type == '5illu':
+	test_addr = '/home/alban/DATA/IM_CC/masks_5illu/'
+elif args.testing_type == 'D65_masks':
+	test_addr = '/home/alban/DATA/IM_CC/masks_D65/'
 
 for m in range(nb_models):
 	print('Evaluation of model %i' %(m+1))
@@ -149,6 +161,7 @@ for m in range(nb_models):
 	net.load_state_dict(torch.load(weights))
 	net.to(device)
 	net.eval()
+	SCENES = list()
 	weight_c1 = DIR_LOAD +'finetuning/inst_%i_%s/readout_conv1/epoch_%i.pt'%(m+1,args.training_set,epochmax_c1[m])
 	weight_c2 = DIR_LOAD +'finetuning/inst_%i_%s/readout_conv2/epoch_%i.pt'%(m+1,args.training_set,epochmax_c2[m])
 	weight_c3 = DIR_LOAD +'finetuning/inst_%i_%s/readout_conv3/epoch_%i.pt'%(m+1,args.training_set,epochmax_c3[m])
@@ -171,19 +184,24 @@ for m in range(nb_models):
 					img = test_addr + 'object%i_%s_%i.npy' %(muns,chr(ill+65),exp)
 				else:
 					img = test_addr + 'object%i_illu_%s.npy' %(muns,ILLU[10*ill*exp])
-				out_c1[m,muns, ill, exp], pc1[m, muns, ill, exp] = DLtest.evaluation_Readouts(net, img, Readout_nets[0], 'conv1', args.testing_condition, 'npy')
-				out_c2[m,muns, ill, exp], pc2[m, muns, ill, exp] = DLtest.evaluation_Readouts(net, img, Readout_nets[1], 'conv2', args.testing_condition, 'npy')
-				out_c3[m,muns, ill, exp], pc3[m, muns, ill, exp] = DLtest.evaluation_Readouts(net, img, Readout_nets[2], 'conv3', args.testing_condition, 'npy')
-				out_fc1[m,muns, ill, exp], pfc1[m, muns, ill, exp] = DLtest.evaluation_Readouts(net, img, Readout_nets[3], 'fc1', args.testing_condition,  'npy')
-				out_fc2[m,muns, ill, exp], pfc2[m, muns, ill, exp] = DLtest.evaluation_Readouts(net, img, Readout_nets[4], 'fc2', args.testing_condition, 'npy')
+				out_c1[m,muns, ill, exp], pc1[m, muns, ill, exp], _ = DLtest.evaluation_Readouts(net, img, val_im_empty_scenes, Readout_nets[0], 'conv1', args.testing_condition, 'npy')
+				out_c2[m,muns, ill, exp], pc2[m, muns, ill, exp], _ = DLtest.evaluation_Readouts(net, img, val_im_empty_scenes, Readout_nets[1], 'conv2', args.testing_condition, 'npy')
+				out_c3[m,muns, ill, exp], pc3[m, muns, ill, exp], _ = DLtest.evaluation_Readouts(net, img, val_im_empty_scenes, Readout_nets[2], 'conv3', args.testing_condition, 'npy')
+				out_fc1[m,muns, ill, exp], pfc1[m, muns, ill, exp], _ = DLtest.evaluation_Readouts(net, img, val_im_empty_scenes, Readout_nets[3], 'fc1', args.testing_condition, 'npy')
+				out_fc2[m,muns, ill, exp], pfc2[m, muns, ill, exp], s = DLtest.evaluation_Readouts(net, img, val_im_empty_scenes, Readout_nets[4], 'fc2', args.testing_condition, 'npy')
+				SCENES.append(s)
 	for munsell in range(nb_obj):
 		EVAL[m,munsell] = DLtest.evaluation(pfc2[m,munsell],list_WCS_labels[munsell])
 	print('Result = %d' %np.mean(EVAL[m]))
 
+DIR_SAVE = '/home/alban/works/color_constancy/All_muns/scripts_server/'
 
-np.save(DIR_LOAD +'outs/out_c1_%s_%s_%s_%s_%s.npy'%(args.model, args.training_set, args.testing_type, args.testing_set, args.testing_condition), out_c1)
-np.save(DIR_LOAD +'outs/out_c2_%s_%s_%s_%s_%s.npy'%(args.model, args.training_set, args.testing_type, args.testing_set, args.testing_condition), out_c2)
-np.save(DIR_LOAD +'outs/out_c3_%s_%s_%s_%s_%s.npy'%(args.model, args.training_set, args.testing_type, args.testing_set, args.testing_condition), out_c3)
-np.save(DIR_LOAD +'outs/out_fc1_%s_%s_%s_%s_%s.npy'%(args.model, args.training_set, args.testing_type, args.testing_set, args.testing_condition), out_fc1)
-np.save(DIR_LOAD +'outs/out_fc2_%s_%s_%s_%s_%s.npy'%(args.model, args.training_set, args.testing_type, args.testing_set, args.testing_condition), out_fc2)
+np.save(DIR_SAVE +'outs/dec_out_c1_%s_%s_%s_%s_%s.npy'%(args.model, args.training_set, args.testing_type, args.testing_set, args.testing_condition), out_c1)
+np.save(DIR_SAVE +'outs/dec_out_c2_%s_%s_%s_%s_%s.npy'%(args.model, args.training_set, args.testing_type, args.testing_set, args.testing_condition), out_c2)
+np.save(DIR_SAVE +'outs/dec_out_c3_%s_%s_%s_%s_%s.npy'%(args.model, args.training_set, args.testing_type, args.testing_set, args.testing_condition), out_c3)
+np.save(DIR_SAVE +'outs/dec_out_fc1_%s_%s_%s_%s_%s.npy'%(args.model, args.training_set, args.testing_type, args.testing_set, args.testing_condition), out_fc1)
+np.save(DIR_SAVE +'outs/dec_out_fc2_%s_%s_%s_%s_%s.npy'%(args.model, args.training_set, args.testing_type, args.testing_set, args.testing_condition), out_fc2)
+
+if args.testing_condition == 'wrong_illu':
+    np.save(DIR_SAVE +'outs/scenes_%s_%s_%s_%s_%s.npy'%(args.model, args.training_set, args.testing_type, args.testing_set, args.testing_condition), SCENES)
 

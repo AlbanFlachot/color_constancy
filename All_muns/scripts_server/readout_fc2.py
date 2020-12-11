@@ -81,13 +81,7 @@ labels = {train_im[i]: train_lab[i] for i in range(len(train_im))}
 for i in range(len(val_im)):
     labels[val_im[i]] = val_lab[i]
 
-#class _Loss(Module):
-#    def __init__(self, size_average=None, reduce=None, reduction='mean'):
-#        super(_Loss, self).__init__()
-#        if size_average is not None or reduce is not None:
-#            self.reduction = _Reduction.legacy_get_string(size_average, reduce)
-#        else:
-#            self.reduction = reduction
+
 
 # In[7]: PLOT TRAINING CURVES
 nb_mod = 10

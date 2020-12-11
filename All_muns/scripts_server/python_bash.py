@@ -8,8 +8,11 @@ Created on Tue Mar  3 14:17:28 2020
 
 import subprocess
 import shlex
+import os
 
 gpu = 3
+
+os.environ["CUDA_VISIBLE_DEVICES"]=str(gpu)
 
 load_dir = '/mnt/juggernaut/alban/project_color_constancy/PYTORCH/WCS/train_centered/All_muns/'
 
@@ -30,13 +33,14 @@ for train_condition in train_sets:
 	    print(command)
 	    args = shlex.split(command)
 	    subprocess.call(args)'''
-'''	    
-command = "python -i Activations_readouts.py --gpu_id %i --model Original --testing_set WCS --testing_type D65 --testing_condition normal --training_set %s --load_dir %s" %(gpu, train_sets[1], load_dir)
+        
+
+command = "python -i Activations_readouts.py --gpu_id %i --model Original --testing_set WCS --testing_type 4illu --testing_condition wrong_illu --training_set CC --load_dir %s" %(gpu, load_dir)
 print(command)
 args = shlex.split(command)
-subprocess.call(args)'''
+subprocess.call(args)
 
-
+'''
 ### Testing script
 for layer in layers[:1]:
 	for condition in test_conditions:
@@ -44,6 +48,7 @@ for layer in layers[:1]:
 		    print(command)
 		    args = shlex.split(command)
 		    subprocess.call(args)
+'''
 
 '''
 for condition in test_conditions:
@@ -55,5 +60,6 @@ for condition in test_conditions:
 '''
 command = "python  Testing_script.py --gpu_id %i --model AlbanNet --testing_set WCS --testing_type 5illu --testing_condition normal --training_set CC --load_dir %s --save_dir %s --focus all" %(gpu, load_dir, save_dir)
 print(command)
-args = shlex.split(command)'''
+args = shlex.split(command)
 subprocess.call(args)
+'''

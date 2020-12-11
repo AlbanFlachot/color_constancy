@@ -6,7 +6,7 @@ from random import randint
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if use_cuda else "cpu")
 
-def transform(img, val_im_empty_scenes, testing = 'normal', type = 'npy', preprocessing='alban'):
+def transform(img, scene, testing = 'normal', type = 'npy', preprocessing='alban'):
 	if type == 'png':
 		I = np.array(io.imread(img)).astype(float)
 		if np.amax(I) > 2:
@@ -35,8 +35,6 @@ def transform(img, val_im_empty_scenes, testing = 'normal', type = 'npy', prepro
 			trans_im[8:19,27:100] = band+ np.tile(lum_noise[:,:,np.newaxis],(1,1,3))
 			I = trans_im.copy()
 		elif testing == 'wrong_illu':
-			index_illu = randint(0,len(val_im_empty_scenes)-1)
-			scene = val_im_empty_scenes[index_illu]
 			SCENE = np.load(scene)                     
 			SCENE[MASK==1] = I[MASK==1]         
 			I = SCENE.astype(float)
@@ -87,7 +85,9 @@ def relevant_kernel_map(mask, layer, dim , stride , window , im_size):
 
 
 def retrieve_activations(net,img, val_im_empty_scenes, testing = 'normal', type = 'npy', focus = 'Munsells', prep = 'alban'):
-	x, mask = transform(img,testing, type, preprocessing = prep)
+	index_illu = randint(0,len(val_im_empty_scenes)-1)
+	scene = val_im_empty_scenes[index_illu]
+	x, mask = transform(img,scene, testing, type, preprocessing = prep)
 	outputs = net(x)
 	# Update: values here are for Original net
 	if focus == 'Munsells':
@@ -109,7 +109,9 @@ def retrieve_activations(net,img, val_im_empty_scenes, testing = 'normal', type 
 
 
 def compute_outputs(net,img, val_im_empty_scenes, testing = 'normal', type = 'npy', focus = 'Munsells', prep = 'alban', layer = ''):
-	x, mask = transform(img, val_im_empty_scenes,testing, type, preprocessing = prep)
+	index_illu = randint(0,len(val_im_empty_scenes)-1)
+	scene = val_im_empty_scenes[index_illu]
+	x, mask = transform(img, scene, testing, type, preprocessing = prep)
 	outputs = net(x)
 	if len(layer) >0:
 	        out = np.amax(outputs[0].cpu().detach().numpy(),axis = (1,2))
@@ -119,13 +121,18 @@ def compute_outputs(net,img, val_im_empty_scenes, testing = 'normal', type = 'np
 
 
 
-def evaluation_Readouts(net,img,readout_net,layer = 'fc2',testing = 'normal',type='npy'):
-	x, _ = transform(img,testing, type)
+def evaluation_Readouts(net, img, val_im_empty_scenes, readout_net,layer = 'fc2',testing = 'normal',type='npy'):
+	index_illu = randint(0,len(val_im_empty_scenes)-1)
+	scene = val_im_empty_scenes[index_illu]
+	x, _ = transform(img,scene, testing, type)
 	outputs = net(x)
 	RC = readout_net(outputs[layer])
 	_, p = torch.max(RC['out'].data, 1)
 	#import pdb; pdb.set_trace()
-	return (RC['out'].cpu().detach().numpy())[0], (p.cpu().detach().numpy())[0]
+	if testing == 'wrong_illu':
+		return (RC['out'].cpu().detach().numpy())[0], (p.cpu().detach().numpy())[0], scene
+	else:
+		return (RC['out'].cpu().detach().numpy())[0], (p.cpu().detach().numpy())[0], 0
 	
 
 def evaluation(predictions, label):

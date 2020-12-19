@@ -76,9 +76,10 @@ parser.add_argument('--focus', default='Munsells', type=str, metavar='str',
                     help='to distiguish between the different models')
 
 parser.add_argument('--layer', default='', type=str, metavar='str',
-                    help='to distiguish between the different models')
+                    help='to distiguish between the different layers to take activations from')
 
 args = parser.parse_args()
+
 
 if args.model == 'Original':
 	nb_models = 10
@@ -88,25 +89,23 @@ else:
 	nb_models = 1
 
 if args.testing_set == 'WCS':
-    nb_obj = 330
+	nb_obj = 330
 elif args.testing_set == 'all':
-    nb_obj = 1600
+	nb_obj = 1600
 
 if args.testing_type == '5illu':
-    nb_illu = 5
-    nb_ex = 5
-list_illus = ['A_norm', 'B_norm', 'C_norm', 'D_norm', 'D_65']
-
-if args.testing_type == '4illu':
-    nb_illu = 4
-    nb_ex = 10
+	nb_illu = 5
+	nb_ex = 5
+	list_illus = ['A_norm', 'B_norm', 'C_norm', 'D_norm', 'D_65']
+elif args.testing_type == '4illu':
+	nb_illu = 4
+	nb_ex = 10
 elif args.testing_type == 'var':
     nb_illu = 28
     nb_ex = 1
 elif args.testing_type == 'D65':
     nb_illu = 1
     nb_ex = 28
-
 elif args.testing_type == 'D65_masks':
     nb_illu = 1
     nb_ex = 20
@@ -137,22 +136,28 @@ val_im_empty_scenes = ['/mnt/juggernaut' + i[5:] for i in val_im_empty_scenes]
 if args.model == 'RefConv':
 	net = M.Ref()
 elif args.model == 'Original':
-    net = M.Net2_4ter_norm()
+	net = M.Net2_4ter_norm()
 elif args.model == 'MobileNet':
-	net, tgsize = model_utils.which_network_classification('/home/alban/DATA/MODELS/wcs_lms_1600/mobilenet_v2/sgd/scratch/original/checkpoint.pth.tar', 1600)
+	path = '/home/alban/DATA/MODELS/wcs_lms_1600/mobilenet_v2/sgd/scratch/original/checkpoint.pth.tar'
+	net, tgsize = model_utils.which_network_classification(path, 1600)
+	layer_names = ['features.0.1.weight', 'features.2.conv.3.weight',  'features.4.conv.3.weight',   'features.6.conv.3.weight',  'features.8.conv.3.weight', 'features.10.conv.3.weight', 'features.12.conv.3.weight', 'features.14.conv.3.weight', 'features.16.conv.3.weight', 'features.18.1.weight']
 elif args.model == 'AlbanNet':
 	net, tgsize = model_utils.which_network_classification('/home/alban/DATA/MODELS/wcs_lms_1600/alban_net/sgd/scratch/original/checkpoint.pth.tar', 1600)
 elif args.model == 'VGG11_bn':
-	net, tgsize = model_utils.which_network_classification('/home/alban/DATA/MODELS/wcs_lms_1600/vgg11_bn/sgd/scratch/original/checkpoint.pth.tar', 1600)
+	path = '/home/alban/DATA/MODELS/wcs_lms_1600/vgg11_bn/sgd/scratch/original/checkpoint.pth.tar'
+	net, tgsize = model_utils.which_network_classification(path, 1600)
+	layer_names = ['features.0.weight',  'features.4.weight',  'features.8.weight',  'features.11.weight', 'features.15.weight', 'features.18.weight', 'features.22.weight',  'features.26.weight', 'classifier.0.weight', 'classifier.3.weight']
 elif args.model == 'ResNet50':
-	net, tgsize = model_utils.which_network_classification('/home/alban/DATA/MODELS/wcs_lms_1600/resnet_bottleneck_custom/sgd/scratch/original_b2354_k64/checkpoint.pth.tar', 1600)
+	path = '/home/alban/DATA/MODELS/wcs_lms_1600/resnet_bottleneck_custom/sgd/scratch/original_b2354_k64/checkpoint.pth.tar'
+	net, tgsize = model_utils.which_network_classification(path, 1600)
+	layer_names = ['layer1.1.conv3.weight', 'layer2.2.conv3.weight', 'layer3.4.conv3.weight', 'layer4.3.conv3.weight']
 elif args.model == 'ResNet18':
 	net, tgsize = model_utils.which_network_classification('/home/alban/DATA/MODELS/wcs_lms_1600/resnet_bottleneck_custom/sgd/scratch/original_b2222_k64/checkpoint.pth.tar', 1600)
 elif args.model == 'ResNet11':
 	net, tgsize = model_utils.which_network_classification('/home/alban/DATA/MODELS/wcs_lms_1600/resnet_bottleneck_custom/sgd/scratch/original_b1111_k64/checkpoint.pth.tar', 1600)
 elif args.model == 'RefResNet':
 	path = '/home/arash/Software/repositories/kernelphysiology/python/data/nets/pytorch/wcs/wcs_lms_1600/resnet_bottleneck_custom/sgd/scratch/Ref%i_b3120_k16_b1024_e90/checkpoint.pth.tar'
-
+	layer_names = ['layer1.2.conv3.weight','layer2.0.conv3.weight','layer3.1.conv3.weight']
 
 if args.testing_type == '4illu':
 	test_addr = '/mnt/juggernaut/alban/project_color_constancy/TRAINING/DATA/PNG/WCS/Test_4_illu_centered/'
@@ -165,7 +170,7 @@ elif args.testing_type == 'D65_masks':
 	test_addr = '/home/alban/DATA/IM_CC/masks_D65/'
 
 # name of layers for RefResNet
-layer_names = ['layer1.2.conv3.weight','layer2.0.conv3.weight','layer3.1.conv3.weight']
+
 
 if args.model == 'Original':
 	conv1 = np.zeros((nb_models,nb_obj,nb_illu,nb_ex, 16))
@@ -175,6 +180,7 @@ if args.model == 'Original':
 	fc2 = np.zeros((nb_models,nb_obj,nb_illu,nb_ex, 250))
 
 shape_out = tuple([1600])
+
 if (args.model == 'RefResNet') & (len(args.layer) > 0):
 	net, tgsize = model_utils.which_network_classification(path%0, 1600)
 	net = model_utils.LayerActivation(net, layer_names[int(args.layer[-1]) -1])
@@ -183,6 +189,24 @@ if (args.model == 'RefResNet') & (len(args.layer) > 0):
 	net.eval()
 	output = net(x)
 	shape_out = output[0].cpu().detach().numpy().shape
+    
+if (args.model =='ResNet50') & (len(args.layer) > 0):
+	net = model_utils.LayerActivation(net, layer_names[int(args.layer[-1]) -1])
+	x, _ = DLtest.transform(val_im_empty_scenes[0], val_im_empty_scenes, preprocessing = 'arash')
+	net.to(device)
+	net.eval()
+	output = net(x)
+	shape_out = output[0].cpu().detach().numpy().shape
+
+if (args.model in ['MobileNet', 'VGG11_bn'] ) & (len(args.layer) > 0):
+	#import pdb; pdb.set_trace()
+	net = DLtest.IntermediateModel(net, layer_names[int(args.layer[-1]) -1])
+	x, _ = DLtest.transform(val_im_empty_scenes[0], val_im_empty_scenes, preprocessing = 'arash')
+	net.to(device)
+	net.eval()
+	output = net(x)
+	shape_out = output[0].cpu().detach().numpy().shape
+
 out = np.zeros((nb_models,nb_obj,nb_illu,nb_ex) + tuple([shape_out[0]]))
 predictions = np.zeros((nb_models,nb_obj,nb_illu,nb_ex))
 EVAL = np.zeros((nb_models,nb_obj,nb_illu))
@@ -209,6 +233,14 @@ for m in range(nb_models):
 		net, tgsize = model_utils.which_network_classification(path%m, 1600)
 		if len(args.layer) > 0:
                         net = model_utils.LayerActivation(net, layer_names[int(args.layer[-1]) -1])
+	elif args.model == 'ResNet50':
+		net, tgsize = model_utils.which_network_classification(path, 1600)
+		if len(args.layer) > 0:
+                        net = model_utils.LayerActivation(net, layer_names[int(args.layer[-1]) -1])
+	elif args.model in ['VGG11_bn', 'MobileNet']:
+		net, tgsize = model_utils.which_network_classification(path, 1600)
+		if len(args.layer) > 0:
+                        net = DLtest.IntermediateModel(net, layer_names[int(args.layer[-1]) -1])
 	net.to(device)
 	net.eval()
 	for muns in range(nb_obj):

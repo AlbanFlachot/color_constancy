@@ -6,7 +6,7 @@ from random import randint
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if use_cuda else "cpu")
 
-def transform(img, scene, testing = 'normal', type = 'npy', preprocessing='alban'):
+def transform(img, scene, patch_nb = 0, testing = 'normal', type = 'npy', preprocessing='alban'):
 	if type == 'png':
 		I = np.array(io.imread(img)).astype(float)
 		if np.amax(I) > 2:
@@ -28,11 +28,11 @@ def transform(img, scene, testing = 'normal', type = 'npy', preprocessing='alban
 			MASK = 0
 		if testing == 'no_patch':
 			trans_im = I.copy()
-			local_mean = np.mean(trans_im[0:8,27:100],axis = (0))
+			local_mean = np.mean(trans_im[0:8,27 + int(12*patch_nb) : 27+ int(12*(patch_nb+1))+1],axis = (0))
 			band = np.tile(local_mean[np.newaxis,:,:],(11,1,1))
 			local_std= np.std(trans_im[0:8,10:115])
-			lum_noise = np.random.normal(0,local_std/10,(11,73))
-			trans_im[8:19,27:100] = band+ np.tile(lum_noise[:,:,np.newaxis],(1,1,3))
+			lum_noise = np.random.normal(0,local_std/10,(11,13))
+			trans_im[8:19, 27 + int(12*patch_nb) : 27+ int(12*(patch_nb+1))+1] = band+ np.tile(lum_noise[:,:,np.newaxis],(1,1,3))
 			I = trans_im.copy()
 		elif testing == 'wrong_illu':
 			SCENE = np.load(scene)                     
@@ -121,10 +121,10 @@ def compute_outputs(net,img, val_im_empty_scenes, testing = 'normal', type = 'np
 
 
 
-def evaluation_Readouts(net, img, val_im_empty_scenes, readout_net,layer = 'fc2',testing = 'normal',type='npy'):
+def evaluation_Readouts(net, img,  val_im_empty_scenes, readout_net, patch_nb=0, layer = 'fc2',testing = 'normal',type='npy'):
 	index_illu = randint(0,len(val_im_empty_scenes)-1)
 	scene = val_im_empty_scenes[index_illu]
-	x, _ = transform(img,scene, testing, type)
+	x, _ = transform(img,scene, patch_nb, testing, type)
 	outputs = net(x)
 	RC = readout_net(outputs[layer])
 	_, p = torch.max(RC['out'].data, 1)
@@ -152,3 +152,20 @@ def training_curves(training_dir, training_set, nb_epoch, Readout = False, layer
 		epochmax[i] = np.argmax(Training_curv[i])
 	return Training_curv, epochmax
 
+import torch.nn as nn
+
+class IntermediateModel(nn.Module):
+    def __init__(self, original_model, layer_name):
+        super(IntermediateModel, self).__init__()
+
+        for i, (key, val) in enumerate(original_model.named_parameters()):
+            if key == layer_name:
+                layer_num = i
+                break
+        self.features = nn.Sequential(
+            *list(original_model.features.children())[:layer_num]
+        )
+
+    def forward(self, x):
+        x = self.features(x)
+        return x

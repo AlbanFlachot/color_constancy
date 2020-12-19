@@ -29,10 +29,18 @@ from utils_scripts import algos
 import warnings
 
 
-dir_path = '/home/alban/mnt/awesome/DATA/IM_CC/masks_5illu/'
+dir_path = '/home/alban/mnt/awesome/alban/DATA/IM_CC/masks_5illu/'
 
-def visualize_npy_im(im_path, save=False, add = 'a', correction = False, coef = 0, masking =False, mask = 0):
+def visualize_npy_im(im_path, no_patch = False,patch_nb = 0, save=False, add = 'a', correction = False, coef = 0, masking =False, mask = 0):
     im = np.load(im_path)
+    if no_patch == True:
+        trans_im = im.copy()
+        local_mean = np.mean(trans_im[0:8,27 + int(12*patch_nb) : 27+ int(12*(patch_nb+1))+1],axis = (0))
+        band = np.tile(local_mean[np.newaxis,:,:],(11,1,1))
+        local_std= np.std(trans_im[0:8,10:115])
+        lum_noise = np.random.normal(0,local_std/10,(11,13))
+        trans_im[8:19, 27 + int(12*patch_nb) : 27+ int(12*(patch_nb+1))+1] = band+ np.tile(lum_noise[:,:,np.newaxis],(1,1,3))
+        im = trans_im.copy()
     if correction > 0:
         im = im/coef
     if masking:
@@ -70,9 +78,13 @@ def relevant_kernel_map(mask, layer, dim , stride , window , im_size):
 
 
 
-visualize_npy_im(dir_path + 'object150/object150_illu_B_norm_0.npy', save = True, add = '/home/alban/Dropbox/project_color_constancy/PAPER/exp_floating_object.png')
+visualize_npy_im(dir_path + 'object150/object150_illu_B_norm_0.npy',no_patch = True, patch_nb = 5, save = True, add = '/home/alban/Dropbox/project_color_constancy/PAPER/exp_floating_object.png')
+
+'''
 visualize_npy_im(dir_path + 'object150/object150_illu_D_65_0.npy', save = True, add = '/home/alban/Dropbox/project_color_constancy/PAPER/exp_floating_object_D65.png')
 visualize_npy_im(dir_path + 'object150/object150_illu_D_65_0_mask.npy', save = True, add = '/home/alban/Dropbox/project_color_constancy/PAPER/exp_floating_object_mask.png')
+
+
 
 correction = np.array([0.85919557, 0.94538869, 1.19541574])
 visualize_npy_im(dir_path + 'object150/object150_illu_B_norm_0.npy', correction = True, coef = correction, save = True, add = '/home/alban/Dropbox/project_color_constancy/PAPER/exp_floating_object_corrected.png')
@@ -85,7 +97,7 @@ visualize_npy_im(dir_path + 'object150/object150_illu_B_norm_0.npy', correction 
 
 
 
-I_mask = np.load(dir_path + 'object32_illu_D_65_1_mask.npy')
+I_mask = np.load(dir_path + 'object32/object32_illu_D_65_1_mask.npy')
 mask = np.mean(I_mask, axis = -1)
 mask[mask > np.amax(mask)/255] = 1
 mask[mask != 1] = 0 
@@ -100,3 +112,4 @@ plt.show()
 plt.close()
 
 img_test = np.load(dir_path + 'object32_illu_D_65_1.npy')
+'''

@@ -39,12 +39,29 @@ npy_dir_path = '../../npy_files/'
 pickles_dir_path = '../pickles/'
 figures_dir_path = '../figures/'
 
-path = '/home/alban/DATA/MODELS/ResNets_customs/reference_ResNet_rendLum_last/Ref%i_randLum_b3120_k16_b1024_e90/checkpoint.pth.tar'
+path = '/home/alban/DATA/MODELS/wcs_lms_1600/vgg11_bn/sgd/scratch/original/checkpoint.pth.tar'
 
-model = torch.load(path%0)
+model = torch.load(path)
+model['state_dict'].keys()
 net, tgsize = model_utils.which_network_classification(path%0, 1600)
 
-layer_names = ['layer1.2.conv3.weights','layer2.0.conv3.weights','layer3.1.conv3.weights']
+layer_names_ResCC = ['layer1.2.conv3.weights','layer2.0.conv3.weights','layer3.1.conv3.weights']
+
+path = '/home/alban/DATA/MODELS/wcs_lms_1600/vgg11_bn/sgd/scratch/original/checkpoint.pth.tar'
+model = torch.load(path)
+model['state_dict'].keys()
+layer_names_vgg11 = [n  for n in model['state_dict'].keys() if 'weight' in n]
 
 
-net2 = model_utils.LayerActivation(net, 'layer1.2.conv3.weights')
+path = '/home/alban/DATA/MODELS/wcs_lms_1600/resnet_bottleneck_custom/sgd/scratch/original_b2354_k64/checkpoint.pth.tar'
+model = torch.load(path)
+model['state_dict'].keys()
+layer_names_ResNet50 = ['layer1.1.conv3.weight', 'layer2.2.conv3.weight', 'layer3.4.conv3.weight', 'layer4.3.conv3.weight']
+
+path = '/home/alban/DATA/MODELS/wcs_lms_1600/mobilenet_v2/sgd/scratch/original/checkpoint.pth.tar'
+model = torch.load(path)
+model['state_dict'].keys()
+layer_names_MobileNet = ['features.1.conv.2.weight', 'features.2.conv.3.weight',  'features.3.conv.3.weight',  'features.4.conv.3.weight',  'features.5.conv.3.weight',  'features.6.conv.3.weight',  'features.7.conv.3.weight',  'features.8.conv.3.weight', 'features.9.conv.3.weight', 'features.10.conv.3.weight', 'features.11.conv.3.weight', 'features.12.conv.3.weight', 'features.13.conv.3.weight', 'features.14.conv.3.weight', 'features.15.conv.3.weight', 'features.16.conv.3.weight', 'features.17.conv.3.weight', 'features.18.1.weight']
+
+
+#net2 = model_utils.LayerActivation(net, 'layer1.2.conv3.weights')

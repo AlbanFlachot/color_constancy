@@ -65,6 +65,9 @@ parser.add_argument('--testing_condition', default='normal', type=str, metavar='
 parser.add_argument('--model', default='Ref', type=str, metavar='str',
                     help='to distiguish between the different models')
 
+parser.add_argument('--patch_nb', default=0, type=int, metavar='int',
+                    help='patch nb that needs to be taken out')
+
 args = parser.parse_args()
 
 
@@ -155,18 +158,18 @@ elif args.testing_type == '5illu':
 elif args.testing_type == 'D65_masks':
 	test_addr = '/home/alban/DATA/IM_CC/masks_D65/'
 
+SCENES = list()
 for m in range(nb_models):
 	print('Evaluation of model %i' %(m+1))
 	weights = DIR_LOAD +'INST_%s/inst_%d_%s/epoch_%i.pt' %((args.training_set,m,args.training_set,EPOCHMAX[m]))
 	net.load_state_dict(torch.load(weights))
 	net.to(device)
 	net.eval()
-	SCENES = list()
-	weight_c1 = DIR_LOAD +'finetuning/inst_%i_%s/readout_conv1/epoch_%i.pt'%(m+1,args.training_set,epochmax_c1[m])
-	weight_c2 = DIR_LOAD +'finetuning/inst_%i_%s/readout_conv2/epoch_%i.pt'%(m+1,args.training_set,epochmax_c2[m])
-	weight_c3 = DIR_LOAD +'finetuning/inst_%i_%s/readout_conv3/epoch_%i.pt'%(m+1,args.training_set,epochmax_c3[m])
-	weight_f1 = DIR_LOAD +'finetuning/inst_%i_%s/readout_fc1/epoch_%i.pt'%(m+1,args.training_set,epochmax_f1[m])
-	weight_f2 = DIR_LOAD +'finetuning/inst_%i_%s/readout_fc2/epoch_%i.pt'%(m+1,args.training_set,epochmax_f2[m])
+	weight_c1 = DIR_LOAD +'finetuning/inst_%i_%s/readout_conv1/epoch_%i.pt'%(m+1,args.training_set, epochmax_c1[m])
+	weight_c2 = DIR_LOAD +'finetuning/inst_%i_%s/readout_conv2/epoch_%i.pt'%(m+1,args.training_set, epochmax_c2[m])
+	weight_c3 = DIR_LOAD +'finetuning/inst_%i_%s/readout_conv3/epoch_%i.pt'%(m+1,args.training_set, epochmax_c3[m])
+	weight_f1 = DIR_LOAD +'finetuning/inst_%i_%s/readout_fc1/epoch_%i.pt'%(m+1,args.training_set, epochmax_f1[m])
+	weight_f2 = DIR_LOAD +'finetuning/inst_%i_%s/readout_fc2/epoch_%i.pt'%(m+1,args.training_set, epochmax_f2[m])
 	Readout_nets[0].load_state_dict(torch.load(weight_c1))
 	Readout_nets[1].load_state_dict(torch.load(weight_c2))
 	Readout_nets[2].load_state_dict(torch.load(weight_c3))
@@ -184,11 +187,11 @@ for m in range(nb_models):
 					img = test_addr + 'object%i_%s_%i.npy' %(muns,chr(ill+65),exp)
 				else:
 					img = test_addr + 'object%i_illu_%s.npy' %(muns,ILLU[10*ill*exp])
-				out_c1[m,muns, ill, exp], pc1[m, muns, ill, exp], _ = DLtest.evaluation_Readouts(net, img, val_im_empty_scenes, Readout_nets[0], 'conv1', args.testing_condition, 'npy')
-				out_c2[m,muns, ill, exp], pc2[m, muns, ill, exp], _ = DLtest.evaluation_Readouts(net, img, val_im_empty_scenes, Readout_nets[1], 'conv2', args.testing_condition, 'npy')
-				out_c3[m,muns, ill, exp], pc3[m, muns, ill, exp], _ = DLtest.evaluation_Readouts(net, img, val_im_empty_scenes, Readout_nets[2], 'conv3', args.testing_condition, 'npy')
-				out_fc1[m,muns, ill, exp], pfc1[m, muns, ill, exp], _ = DLtest.evaluation_Readouts(net, img, val_im_empty_scenes, Readout_nets[3], 'fc1', args.testing_condition, 'npy')
-				out_fc2[m,muns, ill, exp], pfc2[m, muns, ill, exp], s = DLtest.evaluation_Readouts(net, img, val_im_empty_scenes, Readout_nets[4], 'fc2', args.testing_condition, 'npy')
+				out_c1[m,muns, ill, exp], pc1[m, muns, ill, exp], _ = DLtest.evaluation_Readouts(net, img, val_im_empty_scenes, Readout_nets[0], args.patch_nb, 'conv1', args.testing_condition, 'npy')
+				out_c2[m,muns, ill, exp], pc2[m, muns, ill, exp], _ = DLtest.evaluation_Readouts(net, img, val_im_empty_scenes, Readout_nets[1],args.patch_nb, 'conv2', args.testing_condition, 'npy')
+				out_c3[m,muns, ill, exp], pc3[m, muns, ill, exp], _ = DLtest.evaluation_Readouts(net, img, val_im_empty_scenes, Readout_nets[2], args.patch_nb,'conv3', args.testing_condition, 'npy')
+				out_fc1[m,muns, ill, exp], pfc1[m, muns, ill, exp], _ = DLtest.evaluation_Readouts(net, img, val_im_empty_scenes, Readout_nets[3],args.patch_nb, 'fc1', args.testing_condition, 'npy')
+				out_fc2[m,muns, ill, exp], pfc2[m, muns, ill, exp], s = DLtest.evaluation_Readouts(net, img, val_im_empty_scenes, Readout_nets[4], args.patch_nb,'fc2', args.testing_condition, 'npy')
 				SCENES.append(s)
 	for munsell in range(nb_obj):
 		EVAL[m,munsell] = DLtest.evaluation(pfc2[m,munsell],list_WCS_labels[munsell])
@@ -196,11 +199,11 @@ for m in range(nb_models):
 
 DIR_SAVE = '/home/alban/works/color_constancy/All_muns/scripts_server/'
 
-np.save(DIR_SAVE +'outs/dec_out_c1_%s_%s_%s_%s_%s.npy'%(args.model, args.training_set, args.testing_type, args.testing_set, args.testing_condition), out_c1)
-np.save(DIR_SAVE +'outs/dec_out_c2_%s_%s_%s_%s_%s.npy'%(args.model, args.training_set, args.testing_type, args.testing_set, args.testing_condition), out_c2)
-np.save(DIR_SAVE +'outs/dec_out_c3_%s_%s_%s_%s_%s.npy'%(args.model, args.training_set, args.testing_type, args.testing_set, args.testing_condition), out_c3)
-np.save(DIR_SAVE +'outs/dec_out_fc1_%s_%s_%s_%s_%s.npy'%(args.model, args.training_set, args.testing_type, args.testing_set, args.testing_condition), out_fc1)
-np.save(DIR_SAVE +'outs/dec_out_fc2_%s_%s_%s_%s_%s.npy'%(args.model, args.training_set, args.testing_type, args.testing_set, args.testing_condition), out_fc2)
+np.save(DIR_SAVE +'outs/dec_out_c1_%s_%s_%s_%s_%s_%i.npy'%(args.model, args.training_set, args.testing_type, args.testing_set, args.testing_condition, args.patch_nb), out_c1)
+np.save(DIR_SAVE +'outs/dec_out_c2_%s_%s_%s_%s_%s_%i.npy'%(args.model, args.training_set, args.testing_type, args.testing_set, args.testing_condition, args.patch_nb), out_c2)
+np.save(DIR_SAVE +'outs/dec_out_c3_%s_%s_%s_%s_%s_%i.npy'%(args.model, args.training_set, args.testing_type, args.testing_set, args.testing_condition, args.patch_nb), out_c3)
+np.save(DIR_SAVE +'outs/dec_out_fc1_%s_%s_%s_%s_%s_%i.npy'%(args.model, args.training_set, args.testing_type, args.testing_set, args.testing_condition, args.patch_nb), out_fc1)
+np.save(DIR_SAVE +'outs/dec_out_fc2_%s_%s_%s_%s_%s_%i.npy'%(args.model, args.training_set, args.testing_type, args.testing_set, args.testing_condition, args.patch_nb), out_fc2)
 
 if args.testing_condition == 'wrong_illu':
     np.save(DIR_SAVE +'outs/scenes_%s_%s_%s_%s_%s.npy'%(args.model, args.training_set, args.testing_type, args.testing_set, args.testing_condition), SCENES)

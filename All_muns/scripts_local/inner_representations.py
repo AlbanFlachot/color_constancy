@@ -174,8 +174,17 @@ elif net_name == 'ResCC':
         activations_name = 'out_%s_RefResNet_CC_5illu_WCS_%s.npy'
         layers = ['layer3','layer2', 'layer1']
 
+elif net_name == 'MobileNet':
+        nb_models = 1
+        list_activation_path = '/home/alban/mnt/awesome/alban/works/color_constancy/All_muns/scripts_server/outs/'
+        activations_name = 'out_%s_RefResNet_CC_5illu_WCS_%s.npy'
+        layers = ['layer3','layer2', 'layer1']
 
-
+elif net_name == 'VGG11_bn':
+        nb_models = 1
+        list_activation_path = '/home/alban/mnt/awesome/alban/works/color_constancy/All_muns/scripts_server/outs/'
+        activations_name = 'out_%s_RefResNet_CC_5illu_WCS_%s.npy'
+        layers = ['layer3','layer2', 'layer1']
 
 EXPLAINED = {}
 PROCRUSTES_LAB = {}
